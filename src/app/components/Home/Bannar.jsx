@@ -1,9 +1,10 @@
 import Image from 'next/image'
 import React from 'react'
+import banner from "@/../public/images/bannar.png"
 
 export default function Bannar() {
     return (
-        < section className="flex flex-col md:flex-row items-center justify-between px-6 md:px-20 mt-10 z-10 relative" >
+        < section className="flex flex-col md:flex-row items-center justify-between lg:px-[140px] md:px-[80px] px-10 mt-10 z-10 relative" >
             <div className="md:w-1/2 space-y-6">
                 <h2 className="text-4xl md:text-5xl font-bold">
                     Take back control of your personal data
@@ -18,7 +19,7 @@ export default function Bannar() {
             </div>
             <div className="md:w-1/2 mt-10 md:mt-0">
                 <Image
-                    src="/images/background.png"
+                    src={banner}
                     alt="data security"
                     width={500}
                     height={350}
