@@ -4,28 +4,29 @@ import banner from "@/../public/images/bannar.png"
 
 export default function Bannar() {
     return (
-        < section className="flex flex-col md:flex-row items-center justify-between lg:px-[140px] md:px-[80px] px-10 mt-10 z-10 relative" >
+        <section className="flex flex-col gap-36 md:flex-row items-center justify-between lg:px-[140px] md:px-[80px] px-10 mt-20 z-10" >
             <div className="md:w-1/2 space-y-6">
-                <h2 className="text-4xl md:text-5xl font-bold">
+                <h2 className="text-6xl md:text-8xl font-semibold text-[#FFFFFF]">
                     Take back control of your personal data
                 </h2>
-                <p className="text-gray-300">
-                    AJAXX data scrubber makes it quick, easy and safe to remove your
-                    own personal data online.
+                <p className="text-[#FFFFFF] text-base md:text-base w-8/12 mt-4 mb-8">
+                    AJAXX data scurubber makes it quick, easy and safe to remove your see and personal data online.
                 </p>
-                <button className="bg-blue-600 px-6 py-3 rounded hover:bg-blue-700">
-                    Sign Up
+                <button className="bg-[#007ED6] px-6 py-3 rounded hover:bg-[#007ED6] text-white">
+                    Sign Up Free
                 </button>
             </div>
-            <div className="md:w-1/2 mt-10 md:mt-0">
+            <div className="md:w-1/2 mt-10 md:mt-0 w-full">
                 <Image
                     src={banner}
                     alt="data security"
                     width={500}
                     height={350}
-                    className="rounded-xl shadow-lg"
+                    className=" w-full h-auto object-cover"
                 />
             </div>
-        </section >
+        </section>
     )
 }
+
+
