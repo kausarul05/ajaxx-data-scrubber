@@ -58,7 +58,7 @@ export default function Pricing() {
                             {/* Title */}
                             <div className='flex gap-2 items-baseline mb-3'>
                                 <h4
-                                    className={`font-semibold mb-3 text-lg ${plan.name === "Silver"
+                                    className={`font-semibold mb-3 text-2xl ${plan.name === "Silver"
                                         ? "text-[#007ED6]"
                                         : plan.name === "Gold"
                                             ? "text-[#007ED6]"
@@ -67,7 +67,7 @@ export default function Pricing() {
                                 >
                                     {plan.name}
                                 </h4>
-                                <h4 className='font-semibold mb-3 text-lg'>Protection</h4>
+                                <h4 className={`font-semibold mb-3 text-2xl ${plan.name === "Gold" ? 'text-[#007ED6]' : ''}`}>Protection</h4>
                             </div>
 
                             {/* Description */}
@@ -83,13 +83,13 @@ export default function Pricing() {
                                 {plan.features.map((feature, i) => (
                                     <li
                                         key={i}
-                                        className={`flex items-center mb-4 gap-3 text-sm ${feature.available ? "text-gray-200" : "text-gray-500"
+                                        className={`flex items-center mb-4 gap-3 text-sm ${feature.available ? "text-white" : "text-[#B0B0B0]"
                                             }`}
                                     >
                                         {feature.available ? (
                                             <CircleCheck size={16} className="text-[#007ED6]" />
                                         ) : (
-                                            <CircleX size={16} className="text-red-500" />
+                                            <CircleX size={16} className="text-[#EB4335]" />
                                         )}
                                         {feature.text}
                                     </li>
