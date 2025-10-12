@@ -1,4 +1,5 @@
 import logo from '@/../public/images/logo.png'
+import { Facebook, Linkedin } from 'lucide-react';
 import Image from 'next/image';
 
 export default function Footer() {
@@ -60,12 +61,14 @@ export default function Footer() {
                 className="w-10 h-10 flex items-center justify-center border border-[#007ED6] rounded-full"
               >
                 {/* <FaFacebookF className="text-[#007ED6]" /> */}
+                <Facebook />
               </a>
               <a
                 href="#"
                 className="w-10 h-10 flex items-center justify-center border border-[#007ED6] rounded-full"
               >
                 {/* <FaLinkedinIn className="text-[#007ED6]" /> */}
+                <Linkedin />
               </a>
             </div>
           </div>

@@ -50,9 +50,11 @@ const faqs = [
 export default function FAQSection() {
     return (
         <section className="bg-custom section-gap text-white">
-            <h2 className="text-3xl font-bold text-center mb-10">
+            <h1 className="text-[#007ED6] text-[40px] font-semibold text-center mb-4">FAQs</h1>
+            <h2 className="text-3xl font-semibold text-center mb-2">
                 Frequently Asked Questions
             </h2>
+            <p className="mb-20 text-center">We’ve compiled the most common questions to help you get started.</p>
 
             <Accordion.Root type="single" collapsible className="space-y-4">
                 {faqs.map((faq, index) => (
