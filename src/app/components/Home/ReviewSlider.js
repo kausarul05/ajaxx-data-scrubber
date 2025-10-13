@@ -4,59 +4,72 @@
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Autoplay } from 'swiper/modules'
 import 'swiper/css'
+import { motion, useInView } from 'framer-motion';
+import { useRef } from 'react';
 
-export default function ReviewSlider () {
+export default function ReviewSlider() {
   const reviews = [
     {
       name: 'Rakib',
-      text: 'I’ve been using this data broker website for a while, and I couldn’t be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!',
+      text: "I've been using this data broker website for a while, and I couldn't be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!",
       rating: 5
     },
     {
       name: 'Rakib',
-      text: 'I’ve been using this data broker website for a while, and I couldn’t be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!',
+      text: "I've been using this data broker website for a while, and I couldn't be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!",
       rating: 5
     },
     {
       name: 'Rakib',
-      text: 'I’ve been using this data broker website for a while, and I couldn’t be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!',
+      text: "I've been using this data broker website for a while, and I couldn't be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!",
       rating: 5
     },
     {
       name: 'Rakib',
-      text: 'I’ve been using this data broker website for a while, and I couldn’t be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!',
+      text: "I've been using this data broker website for a while, and I couldn't be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!",
       rating: 5
     },
     {
       name: 'Rakib',
-      text: 'I’ve been using this data broker website for a while, and I couldn’t be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!',
+      text: "I've been using this data broker website for a while, and I couldn't be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!",
       rating: 5
     },
     {
       name: 'Rakib',
-      text: 'I’ve been using this data broker website for a while, and I couldn’t be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!',
+      text: "I've been using this data broker website for a while, and I couldn't be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!",
       rating: 5
     },
     {
       name: 'Rakib',
-      text: 'I’ve been using this data broker website for a while, and I couldn’t be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!',
+      text: "I've been using this data broker website for a while, and I couldn't be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!",
       rating: 5
     },
     {
       name: 'Rakib',
-      text: 'I’ve been using this data broker website for a while, and I couldn’t be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!',
+      text: "I've been using this data broker website for a while, and I couldn't be happier! It makes saving and organizing data so much easier. The process is seamless, and everything works perfectly. Great job!",
       rating: 5
     }
   ]
 
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+
   return (
-    <div className='w-full bg-[#071e2f] bg-custom pb-[100px]'>
-      <h1 className=' text-[40px] font-semibold text-center mb-3'>
-        <span className='text-[#007ED6]'>Trust</span> & Results Focused
-      </h1>
-      <p className='mb-14 text-center'>
-        Real stories from people who took back control of their personal data.
-      </p>
+    <div ref={ref} className='w-full bg-custom pb-[100px]'>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+        transition={{ duration: 0.6 }}
+        className="text-center"
+      >
+        <h1 className=' text-[40px] font-semibold text-center mb-3'>
+          <span className='text-[#007ED6]'>Trust</span> & Results Focused
+        </h1>
+        <p className='mb-14 text-center'>
+          Real stories from people who took back control of their personal data.
+        </p>
+      </motion.div>
+
       <Swiper
         modules={[Autoplay]}
         loop={true}
