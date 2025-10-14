@@ -8,7 +8,6 @@ import ReviewSlider from './components/Home/ReviewSlider';
 export default function Home() {
   return (
     <div>
-      
       <Bannar />
       <HowWork/>
       <Pricing/>

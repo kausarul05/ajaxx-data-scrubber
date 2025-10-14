@@ -28,13 +28,12 @@ function Navbar() {
     };
 
     return (
-        <div className={`text-white bg-[#0A3740] lg:px-[140px] md:px-[80px] px-6 drop-shadow-lg drop-shadow-[#007ED680] py-2.5 sticky top-0 z-50 transition-all duration-300 ${
-            isScrolled ? 'bg-[#0A3740]/95 backdrop-blur-sm' : ''
-        }`}>
+        <div className={`text-white bg-[#0A3740] lg:px-[140px] md:px-[80px] px-6 drop-shadow-lg drop-shadow-[#007ED680] py-2.5 sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-[#0A3740]/95 backdrop-blur-sm' : ''
+            }`}>
             <nav className="flex justify-between items-center relative">
                 {/* Logo */}
-                <Link 
-                    href="/" 
+                <Link
+                    href="/"
                     className="flex-shrink-0 transition-transform hover:scale-105 duration-200"
                 >
                     <Image
@@ -51,13 +50,14 @@ function Navbar() {
                         <li
                             key={index}
                             onClick={() => setActiveIndex(index)}
-                            className={`cursor-pointer px-6 py-3 rounded font-medium text-sm transition-all duration-300 transform hover:scale-105 ${
-                                activeIndex === index 
-                                    ? "bg-[#007ED6] text-white shadow-lg shadow-[#007ED6]/50" 
+                            className={`cursor-pointer px-6 py-3 rounded font-medium text-sm transition-all duration-300 transform hover:scale-105 ${activeIndex === index
+                                    ? "bg-[#007ED6] text-white shadow-lg shadow-[#007ED6]/50"
                                     : "hover:bg-[#007ED6]/20 hover:text-white/90"
-                            }`}
+                                }`}
                         >
-                            {item}
+                            <Link href="">
+                                {item}
+                            </Link>
                         </li>
                     ))}
                 </ul>
@@ -78,34 +78,29 @@ function Navbar() {
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                     aria-label="Toggle menu"
                 >
-                    <span className={`bg-white h-0.5 w-6 rounded-full transition-all duration-300 ${
-                        isMenuOpen ? 'rotate-45 translate-y-1.5' : '-translate-y-1'
-                    }`} />
-                    <span className={`bg-white h-0.5 w-6 rounded-full transition-all duration-300 ${
-                        isMenuOpen ? 'opacity-0' : 'opacity-100'
-                    }`} />
-                    <span className={`bg-white h-0.5 w-6 rounded-full transition-all duration-300 ${
-                        isMenuOpen ? '-rotate-45 -translate-y-1.5' : 'translate-y-1'
-                    }`} />
+                    <span className={`bg-white h-0.5 w-6 rounded-full transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-1.5' : '-translate-y-1'
+                        }`} />
+                    <span className={`bg-white h-0.5 w-6 rounded-full transition-all duration-300 ${isMenuOpen ? 'opacity-0' : 'opacity-100'
+                        }`} />
+                    <span className={`bg-white h-0.5 w-6 rounded-full transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-1.5' : 'translate-y-1'
+                        }`} />
                 </button>
 
                 {/* Mobile Menu Overlay */}
-                <div className={`lg:hidden fixed inset-0 bg-[#0A3740] z-40 transition-all duration-500 ease-in-out ${
-                    isMenuOpen 
-                        ? 'opacity-100 visible translate-x-0' 
+                <div className={`lg:hidden fixed inset-0 bg-[#0A3740] z-40 transition-all duration-500 ease-in-out ${isMenuOpen
+                        ? 'opacity-100 visible translate-x-0'
                         : 'opacity-0 invisible translate-x-full'
-                }`}>
+                    }`}>
                     <div className="flex flex-col items-center justify-center h-full space-y-8">
                         {/* Mobile Navigation Items */}
                         {menuItems.map((item, index) => (
                             <button
                                 key={index}
                                 onClick={() => handleMenuItemClick(index)}
-                                className={`text-2xl font-semibold py-4 px-8 rounded-lg transition-all duration-500 transform hover:scale-110 ${
-                                    activeIndex === index
+                                className={`text-2xl font-semibold py-4 px-8 rounded-lg transition-all duration-500 transform hover:scale-110 ${activeIndex === index
                                         ? "bg-[#007ED6] text-white shadow-2xl shadow-[#007ED6]/50 scale-110"
                                         : "text-white/80 hover:text-white hover:bg-[#007ED6]/30"
-                                }`}
+                                    }`}
                             >
                                 {item}
                             </button>
