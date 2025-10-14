@@ -4,7 +4,8 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
 import { useRef } from 'react';
-import banner from "@/../public/images/bannar.png";
+import banner from "@/../public/images/bannar.png.jpg";
+
 
 export default function Banner() {
     const ref = useRef(null);
@@ -99,7 +100,7 @@ export default function Banner() {
                             alt="Data security protection illustration"
                             width={600}
                             height={400}
-                            className="w-full h-auto object-cover rounded-2xl shadow-2xl"
+                            className="w-full h-auto object-cover rounded-2xl"
                             priority
                             placeholder="blur"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"

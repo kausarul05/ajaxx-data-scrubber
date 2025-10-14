@@ -59,7 +59,7 @@ function Navbar() {
                     <Image
                         src={logo}
                         alt="logo"
-                        className="w-32 h-12 md:w-38 md:h-14 relative"
+                        className=""
                         priority
                     />
                 </Link>
