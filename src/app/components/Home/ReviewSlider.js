@@ -6,6 +6,7 @@ import { Autoplay } from 'swiper/modules'
 import 'swiper/css'
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
+import Image from 'next/image';
 
 export default function ReviewSlider() {
   const reviews = [
@@ -102,10 +103,12 @@ export default function ReviewSlider() {
 
               <div className='flex items-center gap-1'>
                 {Array.from({ length: item.rating }).map((_, i) => (
-                  <img
+                  <Image
                     key={i}
                     src='https://upload.wikimedia.org/wikipedia/commons/4/44/Plain_Yellow_Star.png'
                     alt='star'
+                    width={80}
+                    height={40}
                     className='w-4 h-4'
                   />
                 ))}
