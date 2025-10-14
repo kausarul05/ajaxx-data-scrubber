@@ -56,7 +56,7 @@ export default function ReviewSlider() {
   const isInView = useInView(ref, { once: true, margin: "-50px" });
 
   return (
-    <div ref={ref} className='w-full bg-custom pb-[100px]'>
+    <div ref={ref} className='w-full bg-custom pb-[100px] text-white'>
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}

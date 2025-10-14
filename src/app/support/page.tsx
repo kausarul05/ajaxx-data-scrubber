@@ -94,7 +94,7 @@ export default function Support() {
   // };
 
   return (
-    <section className="bg-custom">
+    <section className="bg-custom text-white">
       {/* Banner Image - Responsive */}
       <div className="h-[300px] sm:h-[400px] md:h-[500px] lg:h-[572px]">
         <Image

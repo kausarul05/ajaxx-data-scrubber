@@ -183,7 +183,7 @@ export default function Pricing() {
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
             variants={containerVariants}
-            className="bg-custom section-gap md:section-gap-sm"
+            className="bg-custom section-gap md:section-gap-sm text-white"
         >
             <div className='w-full md:w-10/12 lg:w-8/12 mx-auto px-4 sm:px-6 lg:px-0'>
                 <motion.div 

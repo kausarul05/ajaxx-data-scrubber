@@ -60,7 +60,7 @@ export default function HowWork() {
             variants={containerVariants}
             className="bg-custom text-center section-gap"
         >
-            <div className='w-full md:w-10/12 lg:w-8/12 mx-auto px-4 sm:px-6 lg:px-0'>
+            <div className='w-full md:w-10/12 lg:w-8/12 mx-auto px-4 sm:px-6 lg:px-0 text-white'>
                 <motion.h3 
                     variants={itemVariants}
                     className="text-3xl sm:text-4xl md:text-5xl font-bold mb-10 md:mb-14"
