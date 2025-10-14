@@ -4,13 +4,33 @@ import Image from 'next/image';
 import React, { useState, useEffect } from 'react'
 import logo from "@/../public/images/logo.png"
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 function Navbar() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
 
-    const menuItems = ["Home", "Pricing", "Support", "Dashboard"];
+    const pathname = usePathname();
+
+    const menuItems = [
+        {
+            link: "/",
+            route: "Home"
+        },
+        {
+            link: "/pricing",
+            route: "Pricing"
+        },
+        {
+            link: "/support",
+            route: "Support"
+        },
+        {
+            link: "/dashboard",
+            route: "Dashboard"
+        }
+    ];
 
     // Handle scroll effect
     useEffect(() => {
@@ -45,22 +65,23 @@ function Navbar() {
                 </Link>
 
                 {/* Desktop Menu */}
-                <ul className='hidden lg:flex gap-2'>
+                <ul className="hidden lg:flex gap-2">
                     {menuItems.map((item, index) => (
                         <li
                             key={index}
-                            onClick={() => setActiveIndex(index)}
-                            className={`cursor-pointer px-6 py-3 rounded font-medium text-sm transition-all duration-300 transform hover:scale-105 ${activeIndex === index
+                            className={`cursor-pointer px-6 py-3 rounded font-medium text-sm transition-all duration-300 transform hover:scale-105 ${pathname === item.link
                                     ? "bg-[#007ED6] text-white shadow-lg shadow-[#007ED6]/50"
                                     : "hover:bg-[#007ED6]/20 hover:text-white/90"
                                 }`}
                         >
-                            <Link href="">
-                                {item}
+                            <Link href={item.link}>
+                                {item.route}
                             </Link>
                         </li>
                     ))}
                 </ul>
+
+
 
                 {/* Desktop Auth Buttons */}
                 <ul className="hidden lg:flex gap-6 items-center font-medium text-sm">
@@ -88,23 +109,25 @@ function Navbar() {
 
                 {/* Mobile Menu Overlay */}
                 <div className={`lg:hidden fixed inset-0 bg-[#0A3740] z-40 transition-all duration-500 ease-in-out ${isMenuOpen
-                        ? 'opacity-100 visible translate-x-0'
-                        : 'opacity-0 invisible translate-x-full'
+                    ? 'opacity-100 visible translate-x-0'
+                    : 'opacity-0 invisible translate-x-full'
                     }`}>
                     <div className="flex flex-col items-center justify-center h-full space-y-8">
                         {/* Mobile Navigation Items */}
                         {menuItems.map((item, index) => (
-                            <button
+                            <Link
                                 key={index}
+                                href={item.link}
                                 onClick={() => handleMenuItemClick(index)}
                                 className={`text-2xl font-semibold py-4 px-8 rounded-lg transition-all duration-500 transform hover:scale-110 ${activeIndex === index
-                                        ? "bg-[#007ED6] text-white shadow-2xl shadow-[#007ED6]/50 scale-110"
-                                        : "text-white/80 hover:text-white hover:bg-[#007ED6]/30"
+                                    ? "bg-[#007ED6] text-white shadow-2xl shadow-[#007ED6]/50 scale-110"
+                                    : "text-white/80 hover:text-white hover:bg-[#007ED6]/30"
                                     }`}
                             >
-                                {item}
-                            </button>
+                                {item.route}
+                            </Link>
                         ))}
+
 
                         {/* Mobile Auth Buttons */}
                         <div className="flex flex-col gap-6 mt-8 w-64">
