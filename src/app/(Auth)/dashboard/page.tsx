@@ -1,183 +1,199 @@
 'use client'
 
 import React, { useState } from "react";
-import { 
-  Eye, 
-  Trash2, 
-  X, 
-  Facebook, 
-  ShoppingBag, 
-  Instagram, 
-  Music2, 
-  Linkedin 
+import {
+    Eye,
+    Trash2,
+    X,
+    Facebook,
+    ShoppingBag,
+    Instagram,
+    Music2,
+    Linkedin
 } from "lucide-react";
 
+type ServiceData = {
+    fullName: string;
+    email: string;
+    phone: string;
+    creationDate: string;
+    time: string;
+};
+
+type Service = {
+    id: number;
+    name: string;
+    icon: string;
+    data: ServiceData;
+};
+
+
 export default function Page() {
-  const [clicked, setClicked] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const [showServices, setShowServices] = useState(false);
-  const [selectedService, setSelectedService] = useState<any>(null);
-  const [services, setServices] = useState([
-    { 
-      id: 1, 
-      name: "Facebook", 
-      icon: "facebook",
-      data: {
-        fullName: "Jane Cooper",
-        email: "abc@example.com",
-        phone: "(319) 555-0115",
-        creationDate: "07/02/24",
-        time: "7pm"
-      }
-    },
-    { 
-      id: 2, 
-      name: "amazon", 
-      icon: "amazon",
-      data: {
-        fullName: "Jane Cooper",
-        email: "abc@example.com",
-        phone: "(319) 555-0115",
-        creationDate: "07/02/24",
-        time: "7pm"
-      }
-    },
-    { 
-      id: 3, 
-      name: "Instagram", 
-      icon: "instagram",
-      data: {
-        fullName: "Jane Cooper",
-        email: "abc@example.com",
-        phone: "(319) 555-0115",
-        creationDate: "07/02/24",
-        time: "7pm"
-      }
-    },
-    { 
-      id: 4, 
-      name: "TikTok", 
-      icon: "tiktok",
-      data: {
-        fullName: "Jane Cooper",
-        email: "abc@example.com",
-        phone: "(319) 555-0115",
-        creationDate: "07/02/24",
-        time: "7pm"
-      }
-    },
-    { 
-      id: 5, 
-      name: "LinkedIn", 
-      icon: "linkedin",
-      data: {
-        fullName: "Jane Cooper",
-        email: "abc@example.com",
-        phone: "(319) 555-0115",
-        creationDate: "07/02/24",
-        time: "7pm"
-      }
-    },
-  ]);
+    const [clicked, setClicked] = useState(false);
+    const [scanning, setScanning] = useState(false);
+    const [showServices, setShowServices] = useState(false);
+    const [selectedService, setSelectedService] = useState<Service | null>(null);
+    const [services, setServices] = useState<Service[]>([
+        {
+            id: 1,
+            name: "Facebook",
+            icon: "facebook",
+            data: {
+                fullName: "Jane Cooper",
+                email: "abc@example.com",
+                phone: "(319) 555-0115",
+                creationDate: "07/02/24",
+                time: "7pm"
+            }
+        },
+        {
+            id: 2,
+            name: "amazon",
+            icon: "amazon",
+            data: {
+                fullName: "Jane Cooper",
+                email: "abc@example.com",
+                phone: "(319) 555-0115",
+                creationDate: "07/02/24",
+                time: "7pm"
+            }
+        },
+        {
+            id: 3,
+            name: "Instagram",
+            icon: "instagram",
+            data: {
+                fullName: "Jane Cooper",
+                email: "abc@example.com",
+                phone: "(319) 555-0115",
+                creationDate: "07/02/24",
+                time: "7pm"
+            }
+        },
+        {
+            id: 4,
+            name: "TikTok",
+            icon: "tiktok",
+            data: {
+                fullName: "Jane Cooper",
+                email: "abc@example.com",
+                phone: "(319) 555-0115",
+                creationDate: "07/02/24",
+                time: "7pm"
+            }
+        },
+        {
+            id: 5,
+            name: "LinkedIn",
+            icon: "linkedin",
+            data: {
+                fullName: "Jane Cooper",
+                email: "abc@example.com",
+                phone: "(319) 555-0115",
+                creationDate: "07/02/24",
+                time: "7pm"
+            }
+        },
+    ]);
 
-  // Function to get the icon component based on service name
-  const getServiceIcon = (serviceName: string, size: number = 20) => {
-    switch (serviceName.toLowerCase()) {
-      case 'facebook':
-        return <Facebook size={size} className="text-blue-500" />;
-      case 'amazon':
-        return <ShoppingBag size={size} className="text-orange-500" />;
-      case 'instagram':
-        return <Instagram size={size} className="text-pink-500" />;
-      case 'tiktok':
-        return <Music2 size={size} className="text-black" />;
-      case 'linkedin':
-        return <Linkedin size={size} className="text-blue-600" />;
-      default:
-        return <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded flex items-center justify-center text-white font-bold text-sm">
-          {serviceName.charAt(0)}
-        </div>;
-    }
-  };
+    // Function to get the icon component based on service name
+    const getServiceIcon = (serviceName: string, size: number = 20) => {
+        switch (serviceName.toLowerCase()) {
+            case 'facebook':
+                return <Facebook size={size} className="text-blue-500" />;
+            case 'amazon':
+                return <ShoppingBag size={size} className="text-orange-500" />;
+            case 'instagram':
+                return <Instagram size={size} className="text-pink-500" />;
+            case 'tiktok':
+                return <Music2 size={size} className="text-black" />;
+            case 'linkedin':
+                return <Linkedin size={size} className="text-blue-600" />;
+            default:
+                return <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded flex items-center justify-center text-white font-bold text-sm">
+                    {serviceName.charAt(0)}
+                </div>;
+        }
+    };
 
-  const handleClick = () => {
-    setClicked(true);
-    setScanning(true);
-    
-    setTimeout(() => {
-      setClicked(false);
-    }, 800);
-    
-    setTimeout(() => {
-      setScanning(false);
-      setShowServices(true);
-    }, 2000);
-  };
+    const handleClick = () => {
+        setClicked(true);
+        setScanning(true);
 
-  const handleView = (service: any) => {
-    setSelectedService(service);
-  };
+        setTimeout(() => {
+            setClicked(false);
+        }, 800);
 
-  const handleRemove = (serviceId: number) => {
-    setServices(prev => prev.filter(service => service.id !== serviceId));
-  };
+        setTimeout(() => {
+            setScanning(false);
+            setShowServices(true);
+        }, 2000);
+    };
 
-  const closeModal = () => {
-    setSelectedService(null);
-  };
+    const handleView = (service: Service) => {
+        setSelectedService(service);
+    };
 
-  return (
-    <div className="min-h-screen bg-[#0A2131] flex p-6 pr-[120px]">
-      <div className="bg-[#0E2A3F] w-full rounded-xl p-10 shadow-xl">
-        {/* Scan Section */}
-        <h1 className="text-white text-lg mb-8 font-medium">Scan Your Email</h1>
+    const handleRemove = (serviceId: number) => {
+        setServices(prev => prev.filter(service => service.id !== serviceId));
+    };
 
-        <div className="flex justify-center mb-10">
-          <div
-            onClick={handleClick}
-            className="relative w-52 h-52 rounded-full flex items-center justify-center cursor-pointer group"
-          >
-            {/* Cyber Grid Background */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-400/30">
-              <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_50%,rgba(34,211,238,0.1)_50%),linear-gradient(transparent_50%,rgba(34,211,238,0.1)_50%)] bg-[size:20px_20px] rounded-full" />
-            </div>
+    const closeModal = () => {
+        setSelectedService(null);
+    };
 
-            {/* Scanning Wave Effect */}
-            {scanning && (
-              <div className="absolute inset-0 rounded-full overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-400/40 to-transparent animate-scan-wave" />
-              </div>
-            )}
+    return (
+        <div className="min-h-screen bg-[#0A2131] flex p-6 pr-[120px]">
+            <div className="bg-[#0E2A3F] w-full rounded-xl p-10 shadow-xl">
+                {/* Scan Section */}
+                <h1 className="text-white text-lg mb-8 font-medium">Scan Your Email</h1>
 
-            {/* Digital Pulse Rings */}
-            {clicked && (
-              <>
-                <div className="absolute inset-0 rounded-full border-2 border-cyan-400 animate-digital-pulse-1" />
-                <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-digital-pulse-2" />
-                <div className="absolute inset-0 rounded-full border-2 border-green-400 animate-digital-pulse-3" />
-              </>
-            )}
+                <div className="flex justify-center mb-10">
+                    <div
+                        onClick={handleClick}
+                        className="relative w-52 h-52 rounded-full flex items-center justify-center cursor-pointer group"
+                    >
+                        {/* Cyber Grid Background */}
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-400/30">
+                            <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_50%,rgba(34,211,238,0.1)_50%),linear-gradient(transparent_50%,rgba(34,211,238,0.1)_50%)] bg-[size:20px_20px] rounded-full" />
+                        </div>
 
-            {/* Binary Rain Effect */}
-            {scanning && (
-              <div className="absolute inset-0 rounded-full overflow-hidden">
-                {[...Array(8)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute text-cyan-400/60 text-xs font-mono animate-binary-fall"
-                    style={{
-                      left: `${20 + i * 10}%`,
-                      animationDelay: `${i * 0.2}s`,
-                    }}
-                  >
-                    {Math.random() > 0.5 ? '1' : '0'}
-                  </div>
-                ))}
-              </div>
-            )}
+                        {/* Scanning Wave Effect */}
+                        {scanning && (
+                            <div className="absolute inset-0 rounded-full overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-400/40 to-transparent animate-scan-wave" />
+                            </div>
+                        )}
 
-            {/* Main Button with Glitch Effect */}
-            <div className={`
+                        {/* Digital Pulse Rings */}
+                        {clicked && (
+                            <>
+                                <div className="absolute inset-0 rounded-full border-2 border-cyan-400 animate-digital-pulse-1" />
+                                <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-digital-pulse-2" />
+                                <div className="absolute inset-0 rounded-full border-2 border-green-400 animate-digital-pulse-3" />
+                            </>
+                        )}
+
+                        {/* Binary Rain Effect */}
+                        {scanning && (
+                            <div className="absolute inset-0 rounded-full overflow-hidden">
+                                {[...Array(8)].map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className="absolute text-cyan-400/60 text-xs font-mono animate-binary-fall"
+                                        style={{
+                                            left: `${20 + i * 10}%`,
+                                            animationDelay: `${i * 0.2}s`,
+                                        }}
+                                    >
+                                        {Math.random() > 0.5 ? '1' : '0'}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Main Button with Glitch Effect */}
+                        <div className={`
               relative z-10 w-44 h-44 rounded-full 
               flex items-center justify-center 
               bg-gradient-to-br from-cyan-600 via-blue-600 to-purple-600
@@ -186,165 +202,165 @@ export default function Page() {
               ${clicked ? 'scale-95 shadow-[0_0_80px_rgba(34,211,238,0.6)]' : 'group-hover:scale-105'}
               overflow-hidden
             `}>
-              {/* Glitch Text Effect */}
-              <span className={`
+                            {/* Glitch Text Effect */}
+                            <span className={`
                 text-white text-4xl font-bold font-mono relative
                 ${scanning ? 'animate-glitch' : ''}
               `}>
-                <span className="absolute top-0 left-0 text-cyan-300 animate-glitch-1">GO</span>
-                <span className="absolute top-0 left-0 text-blue-300 animate-glitch-2">GO</span>
-                GO
-              </span>
+                                <span className="absolute top-0 left-0 text-cyan-300 animate-glitch-1">GO</span>
+                                <span className="absolute top-0 left-0 text-blue-300 animate-glitch-2">GO</span>
+                                GO
+                            </span>
 
-              {/* LED Border */}
-              <div className="absolute inset-0 rounded-full border-2 border-cyan-400/50 animate-led-glow" />
-            </div>
+                            {/* LED Border */}
+                            <div className="absolute inset-0 rounded-full border-2 border-cyan-400/50 animate-led-glow" />
+                        </div>
 
-            {/* Hover Energy Field */}
-            <div className="absolute inset-0 rounded-full border-2 border-cyan-400/0 group-hover:border-cyan-400/30 transition-all duration-500 group-hover:animate-spin-slow" />
-          </div>
-        </div>
-
-        {/* Services List - Animated Entry */}
-        {showServices && (
-          <div className="space-y-4 animate-services-appear">
-            <div className="text-center mb-6">
-              <h2 className="text-cyan-400 text-lg font-mono animate-text-glow">
-                SCAN COMPLETE
-              </h2>
-              <p className="text-gray-400 text-sm mt-2">
-                Found {services.length} connected services
-              </p>
-            </div>
-            
-            {services.map((service, index) => (
-              <div
-                key={service.id}
-                className="flex justify-between items-center bg-[#0B2233] border border-[#0F3A52] rounded-lg py-4 px-6 transform transition-all duration-500 hover:scale-[1.02] hover:border-cyan-500/30"
-                style={{
-                  animationDelay: `${index * 0.1}s`,
-                  animation: 'service-slide-in 0.6s ease-out forwards',
-                  opacity: 0,
-                  transform: 'translateX(-50px)'
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded flex items-center justify-center">
-                    {getServiceIcon(service.name)}
-                  </div>
-                  <span className="text-white font-medium capitalize">
-                    {service.name}
-                  </span>
+                        {/* Hover Energy Field */}
+                        <div className="absolute inset-0 rounded-full border-2 border-cyan-400/0 group-hover:border-cyan-400/30 transition-all duration-500 group-hover:animate-spin-slow" />
+                    </div>
                 </div>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => handleView(service)}
-                    className="flex items-center gap-2 bg-[#0ABF9D] text-white text-sm px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
-                  >
-                    <Eye size={16} />
-                    View
-                  </button>
-                  <button 
-                    onClick={() => handleRemove(service.id)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
-                  >
-                    <Trash2 size={16} />
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
 
-        {/* Scan Prompt - Only show when services are hidden */}
-        {!showServices && !scanning && (
-          <div className="text-center mt-8 animate-pulse">
-            <p className="text-cyan-400/70 text-sm font-mono">
-              CLICK TO SCAN YOUR ACCOUNT
-            </p>
-          </div>
-        )}
+                {/* Services List - Animated Entry */}
+                {showServices && (
+                    <div className="space-y-4 animate-services-appear">
+                        <div className="text-center mb-6">
+                            <h2 className="text-cyan-400 text-lg font-mono animate-text-glow">
+                                SCAN COMPLETE
+                            </h2>
+                            <p className="text-gray-400 text-sm mt-2">
+                                Found {services.length} connected services
+                            </p>
+                        </div>
 
-        {/* Scanning Status */}
-        {scanning && (
-          <div className="text-center mt-8">
-            <div className="flex justify-center items-center gap-3 mb-2">
-              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
-              <p className="text-cyan-400 text-sm font-mono">SCANNING IN PROGRESS...</p>
+                        {services.map((service, index) => (
+                            <div
+                                key={service.id}
+                                className="flex justify-between items-center bg-[#0B2233] border border-[#0F3A52] rounded-lg py-4 px-6 transform transition-all duration-500 hover:scale-[1.02] hover:border-cyan-500/30"
+                                style={{
+                                    animationDelay: `${index * 0.1}s`,
+                                    animation: 'service-slide-in 0.6s ease-out forwards',
+                                    opacity: 0,
+                                    transform: 'translateX(-50px)'
+                                }}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded flex items-center justify-center">
+                                        {getServiceIcon(service.name)}
+                                    </div>
+                                    <span className="text-white font-medium capitalize">
+                                        {service.name}
+                                    </span>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => handleView(service)}
+                                        className="flex items-center gap-2 bg-[#0ABF9D] text-white text-sm px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
+                                    >
+                                        <Eye size={16} />
+                                        View
+                                    </button>
+                                    <button
+                                        onClick={() => handleRemove(service.id)}
+                                        className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
+                                    >
+                                        <Trash2 size={16} />
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Scan Prompt - Only show when services are hidden */}
+                {!showServices && !scanning && (
+                    <div className="text-center mt-8 animate-pulse">
+                        <p className="text-cyan-400/70 text-sm font-mono">
+                            CLICK TO SCAN YOUR ACCOUNT
+                        </p>
+                    </div>
+                )}
+
+                {/* Scanning Status */}
+                {scanning && (
+                    <div className="text-center mt-8">
+                        <div className="flex justify-center items-center gap-3 mb-2">
+                            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
+                            <p className="text-cyan-400 text-sm font-mono">SCANNING IN PROGRESS...</p>
+                        </div>
+                        <div className="w-48 h-1 bg-gray-700 rounded-full mx-auto overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-400 animate-scan-progress"></div>
+                        </div>
+                    </div>
+                )}
             </div>
-            <div className="w-48 h-1 bg-gray-700 rounded-full mx-auto overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-400 animate-scan-progress"></div>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* View Modal */}
-      {selectedService && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-6 z-50 animate-modal-fade-in">
-          <div className="bg-[#0E2A3F] border border-cyan-500/30 rounded-xl p-6 max-w-md w-full shadow-2xl animate-modal-slide-up">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-                  {getServiceIcon(selectedService.name, 32)}
-                </div>
-                {/* <h3 className="text-white text-xl font-bold capitalize">
+            {/* View Modal */}
+            {selectedService && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-6 z-50 animate-modal-fade-in">
+                    <div className="bg-[#0E2A3F] border border-cyan-500/30 rounded-xl p-6 max-w-md w-full shadow-2xl animate-modal-slide-up">
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+                                    {getServiceIcon(selectedService.name, 32)}
+                                </div>
+                                {/* <h3 className="text-white text-xl font-bold capitalize">
                   {selectedService.name}
                 </h3> */}
-              </div>
-              <button 
-                onClick={closeModal}
-                className="text-gray-400 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
-              >
-                <X size={24} />
-              </button>
-            </div>
+                            </div>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
 
-            {/* Modal Content */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
-                <div className="w-full flex justify-between items-center">
-                  <p className="text-white text-sm">Full name</p>
-                  <p className="text-white font-medium">{selectedService.data.fullName}</p>
+                        {/* Modal Content */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
+                                <div className="w-full flex justify-between items-center">
+                                    <p className="text-white text-sm">Full name</p>
+                                    <p className="text-white font-medium">{selectedService.data.fullName}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 p-3  rounded-lg border border-[#0F3A52]">
+                                <div className="w-full flex justify-between items-center">
+                                    <p className="text-white text-sm">Email</p>
+                                    <p className="text-white font-medium">{selectedService.data.email}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 p-3  rounded-lg border border-[#0F3A52]">
+                                <div className="w-full flex justify-between items-center">
+                                    <p className="text-white text-sm">Phone number</p>
+                                    <p className="text-white font-medium">{selectedService.data.phone}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 p-3  rounded-lg border border-[#0F3A52]">
+                                <div className="w-full flex justify-between items-center">
+                                    <p className="text-white text-sm">Account creation date</p>
+                                    <p className="text-white font-medium">{selectedService.data.creationDate}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
+                                <div className="w-full flex justify-between items-center">
+                                    <p className="text-white text-sm">Time</p>
+                                    <p className="text-white font-medium">{selectedService.data.time}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
+            )}
 
-              <div className="flex items-center gap-3 p-3  rounded-lg border border-[#0F3A52]">
-                <div className="w-full flex justify-between items-center">
-                  <p className="text-white text-sm">Email</p>
-                  <p className="text-white font-medium">{selectedService.data.email}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3  rounded-lg border border-[#0F3A52]">
-                <div className="w-full flex justify-between items-center">
-                  <p className="text-white text-sm">Phone number</p>
-                  <p className="text-white font-medium">{selectedService.data.phone}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3  rounded-lg border border-[#0F3A52]">
-                <div className="w-full flex justify-between items-center">
-                  <p className="text-white text-sm">Account creation date</p>
-                  <p className="text-white font-medium">{selectedService.data.creationDate}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
-                <div className="w-full flex justify-between items-center">
-                  <p className="text-white text-sm">Time</p>
-                  <p className="text-white font-medium">{selectedService.data.time}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cyber Animation Styles */}
-      <style jsx>{`
+            {/* Cyber Animation Styles */}
+            <style jsx>{`
         @keyframes spin-slow {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
@@ -499,6 +515,6 @@ export default function Page() {
           animation: modal-slide-up 0.4s ease-out forwards;
         }
       `}</style>
-    </div>
-  );
+        </div>
+    );
 }
