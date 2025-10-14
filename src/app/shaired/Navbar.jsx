@@ -108,7 +108,7 @@ function Navbar() {
                 </button>
 
                 {/* Mobile Menu Overlay */}
-                <div className={`lg:hidden fixed inset-0 bg-[#0A3740] z-40 transition-all duration-500 ease-in-out ${isMenuOpen
+                <div className={`lg:hidden fixed inset-0 bg-black z-40 transition-all duration-500 ease-in-out ${isMenuOpen
                     ? 'opacity-100 visible translate-x-0'
                     : 'opacity-0 invisible translate-x-full'
                     }`}>
