@@ -258,7 +258,7 @@ export default function HistoryPage() {
                                                 <span className="text-sm sm:text-sm font-bold capitalize">{item.name}</span>
                                             </div>
                                             <div
-                                                ref={el => moreVerticalRefs.current[itemKey] = el}
+                                                ref={el => { moreVerticalRefs.current[itemKey] = el; }}
                                                 className="relative"
                                             >
                                                 <MoreVertical
