@@ -143,7 +143,7 @@ export default function Page() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0A2131] flex p-6 pr-[120px]">
+        <div className="min-h-screen bg-[#0A2131] flex p-8">
             <div className="bg-[#0E2A3F] w-full rounded-xl p-10 shadow-xl">
                 {/* Scan Section */}
                 <h1 className="text-white text-lg mb-8 font-medium">Scan Your Email</h1>
