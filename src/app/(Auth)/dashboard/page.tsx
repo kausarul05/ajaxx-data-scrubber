@@ -27,7 +27,6 @@ type Service = {
     data: ServiceData;
 };
 
-
 export default function Page() {
     const [clicked, setClicked] = useState(false);
     const [scanning, setScanning] = useState(false);
@@ -143,15 +142,15 @@ export default function Page() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0A2131] flex p-8">
-            <div className="bg-[#0E2A3F] w-full rounded-xl p-10 shadow-xl">
+        <div className="min-h-screen bg-[#0A2131] flex p-4 sm:p-6 lg:p-8">
+            <div className="bg-[#0E2A3F] w-full rounded-xl p-4 sm:p-6 lg:p-10 shadow-xl">
                 {/* Scan Section */}
-                <h1 className="text-white text-lg mb-8 font-medium">Scan Your Email</h1>
+                <h1 className="text-white text-lg mb-6 lg:mb-8 font-medium text-center lg:text-left">Scan Your Email</h1>
 
-                <div className="flex justify-center mb-10">
+                <div className="flex justify-center mb-8 lg:mb-10">
                     <div
                         onClick={handleClick}
-                        className="relative w-52 h-52 rounded-full flex items-center justify-center cursor-pointer group"
+                        className="relative w-40 h-40 sm:w-52 sm:h-52 rounded-full flex items-center justify-center cursor-pointer group"
                     >
                         {/* Cyber Grid Background */}
                         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-400/30">
@@ -194,7 +193,7 @@ export default function Page() {
 
                         {/* Main Button with Glitch Effect */}
                         <div className={`
-              relative z-10 w-44 h-44 rounded-full 
+              relative z-10 w-32 h-32 sm:w-44 sm:h-44 rounded-full 
               flex items-center justify-center 
               bg-gradient-to-br from-cyan-600 via-blue-600 to-purple-600
               shadow-[0_0_50px_rgba(34,211,238,0.3)]
@@ -204,7 +203,7 @@ export default function Page() {
             `}>
                             {/* Glitch Text Effect */}
                             <span className={`
-                text-white text-4xl font-bold font-mono relative
+                text-white text-2xl sm:text-4xl font-bold font-mono relative
                 ${scanning ? 'animate-glitch' : ''}
               `}>
                                 <span className="absolute top-0 left-0 text-cyan-300 animate-glitch-1">GO</span>
@@ -236,7 +235,7 @@ export default function Page() {
                         {services.map((service, index) => (
                             <div
                                 key={service.id}
-                                className="flex justify-between items-center bg-[#0B2233] border border-[#0F3A52] rounded-lg py-4 px-6 transform transition-all duration-500 hover:scale-[1.02] hover:border-cyan-500/30"
+                                className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-[#0B2233] border border-[#0F3A52] rounded-lg py-4 px-4 sm:px-6 transform transition-all duration-500 hover:scale-[1.02] hover:border-cyan-500/30"
                                 style={{
                                     animationDelay: `${index * 0.1}s`,
                                     animation: 'service-slide-in 0.6s ease-out forwards',
@@ -252,20 +251,20 @@ export default function Page() {
                                         {service.name}
                                     </span>
                                 </div>
-                                <div className="flex gap-3">
+                                <div className="flex gap-2 sm:gap-3 justify-end">
                                     <button
                                         onClick={() => handleView(service)}
-                                        className="flex items-center gap-2 bg-[#0ABF9D] text-white text-sm px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
+                                        className="flex items-center gap-2 bg-[#0ABF9D] text-white text-sm px-3 sm:px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
                                     >
                                         <Eye size={16} />
-                                        View
+                                        <span className="hidden xs:inline">View</span>
                                     </button>
                                     <button
                                         onClick={() => handleRemove(service.id)}
-                                        className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
+                                        className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm px-3 sm:px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
                                     >
                                         <Trash2 size={16} />
-                                        Remove
+                                        <span className="hidden xs:inline">Remove</span>
                                     </button>
                                 </div>
                             </div>
@@ -275,7 +274,7 @@ export default function Page() {
 
                 {/* Scan Prompt - Only show when services are hidden */}
                 {!showServices && !scanning && (
-                    <div className="text-center mt-8 animate-pulse">
+                    <div className="text-center mt-6 lg:mt-8 animate-pulse">
                         <p className="text-cyan-400/70 text-sm font-mono">
                             CLICK TO SCAN YOUR ACCOUNT
                         </p>
@@ -284,7 +283,7 @@ export default function Page() {
 
                 {/* Scanning Status */}
                 {scanning && (
-                    <div className="text-center mt-8">
+                    <div className="text-center mt-6 lg:mt-8">
                         <div className="flex justify-center items-center gap-3 mb-2">
                             <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
                             <p className="text-cyan-400 text-sm font-mono">SCANNING IN PROGRESS...</p>
@@ -298,17 +297,14 @@ export default function Page() {
 
             {/* View Modal */}
             {selectedService && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-6 z-50 animate-modal-fade-in">
-                    <div className="bg-[#0E2A3F] border border-cyan-500/30 rounded-xl p-6 max-w-md w-full shadow-2xl animate-modal-slide-up">
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 sm:p-6 z-50 animate-modal-fade-in">
+                    <div className="bg-[#0E2A3F] border border-cyan-500/30 rounded-xl p-4 sm:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-modal-slide-up">
                         {/* Modal Header */}
                         <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-lg flex items-center justify-center">
                                     {getServiceIcon(selectedService.name, 32)}
                                 </div>
-                                {/* <h3 className="text-white text-xl font-bold capitalize">
-                  {selectedService.name}
-                </h3> */}
                             </div>
                             <button
                                 onClick={closeModal}
@@ -321,37 +317,37 @@ export default function Page() {
                         {/* Modal Content */}
                         <div className="space-y-4">
                             <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
-                                <div className="w-full flex justify-between items-center">
+                                <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                                     <p className="text-white text-sm">Full name</p>
-                                    <p className="text-white font-medium">{selectedService.data.fullName}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 p-3  rounded-lg border border-[#0F3A52]">
-                                <div className="w-full flex justify-between items-center">
-                                    <p className="text-white text-sm">Email</p>
-                                    <p className="text-white font-medium">{selectedService.data.email}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 p-3  rounded-lg border border-[#0F3A52]">
-                                <div className="w-full flex justify-between items-center">
-                                    <p className="text-white text-sm">Phone number</p>
-                                    <p className="text-white font-medium">{selectedService.data.phone}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 p-3  rounded-lg border border-[#0F3A52]">
-                                <div className="w-full flex justify-between items-center">
-                                    <p className="text-white text-sm">Account creation date</p>
-                                    <p className="text-white font-medium">{selectedService.data.creationDate}</p>
+                                    <p className="text-white font-medium text-sm sm:text-base">{selectedService.data.fullName}</p>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
-                                <div className="w-full flex justify-between items-center">
+                                <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                    <p className="text-white text-sm">Email</p>
+                                    <p className="text-white font-medium text-sm sm:text-base">{selectedService.data.email}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
+                                <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                    <p className="text-white text-sm">Phone number</p>
+                                    <p className="text-white font-medium text-sm sm:text-base">{selectedService.data.phone}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
+                                <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                    <p className="text-white text-sm">Account creation date</p>
+                                    <p className="text-white font-medium text-sm sm:text-base">{selectedService.data.creationDate}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
+                                <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                                     <p className="text-white text-sm">Time</p>
-                                    <p className="text-white font-medium">{selectedService.data.time}</p>
+                                    <p className="text-white font-medium text-sm sm:text-base">{selectedService.data.time}</p>
                                 </div>
                             </div>
                         </div>

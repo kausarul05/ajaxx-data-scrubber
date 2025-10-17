@@ -200,10 +200,10 @@ export default function Support() {
               </div>
 
               <div className="mb-4 sm:mb-5">
-                <label className="block text-sm font-semibold mb-2">Address</label>
+                <label className="block text-sm font-semibold mb-2">Subject</label>
                 <input
                   type="text"
-                  placeholder="Enter your Email"
+                  placeholder="Enter your Subject"
                   className="w-full bg-[#0D314B] border border-[#007ED6] rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#007ED6] text-sm sm:text-base"
                 />
               </div>
@@ -211,7 +211,7 @@ export default function Support() {
               <div className="mb-4 sm:mb-5">
                 <label className="block text-sm font-semibold mb-2">Description</label>
                 <textarea
-                  placeholder="Enter your phone online."
+                  placeholder="Enter your description..."
                   rows={3}
                   className="w-full bg-[#0D314B] border border-[#007ED6] rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#007ED6] text-sm sm:text-base resize-none"
                 />

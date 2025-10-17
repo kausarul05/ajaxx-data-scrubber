@@ -65,7 +65,7 @@ export default function HowWork() {
                     variants={itemVariants}
                     className="text-3xl sm:text-4xl md:text-5xl font-bold mb-10 md:mb-14"
                 >
-                    How Data Guardian Works
+                    How Data Scrubber Works
                 </motion.h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 md:gap-12">
                     <motion.div 
