@@ -4,10 +4,14 @@
 import React, { useRef, useState } from 'react'
 import profile from "@/../public/images/profile.jpg"
 import Image from 'next/image'
-import { Eye, Pencil } from 'lucide-react'
+import { Eye, EyeOff, Pencil } from 'lucide-react'
 
 export default function ChangePassword() {
+    const [showOld, setShowOld] = useState(false)
+    const [showNew, setShowNew] = useState(false)
+    const [showConfirm, setShowConfirm] = useState(false)
 
+    console.log(showOld)
 
     return (
         <div className="bg-[#0A2131] flex items-center justify-center p-8">
@@ -22,13 +26,16 @@ export default function ChangePassword() {
                             <label className="block text-sm font-semibold" htmlFor="old_password">Old Password</label>
                             <div className='relative'>
                                 <input
-                                    type="password"
+                                    type={showOld ? "text" : "password"}
                                     id="old_password"
                                     placeholder="Input your old password"
                                     className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg"
                                 />
-                                <div>
-                                    <Eye className='absolute right-5 top-5 cursor-pointer text-[#64748B]' />
+                                <div
+                                    onClick={() => setShowOld(!showOld)}
+                                    className='absolute right-5 top-5 cursor-pointer text-[#64748B]'>
+
+                                    {showOld ? <EyeOff /> : <Eye />}
                                 </div>
                             </div>
                         </div>
@@ -37,13 +44,16 @@ export default function ChangePassword() {
                             <label className="block text-sm font-semibold" htmlFor="new_password">New Password</label>
                             <div className='relative'>
                                 <input
-                                    type="password"
+                                    type={showNew ? "text" : "password"}
                                     id="new_password"
                                     placeholder="Input your new password"
                                     className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg"
                                 />
-                                <div>
-                                    <Eye className='absolute right-5 top-5 cursor-pointer text-[#64748B]' />
+                                <div
+                                    onClick={() => setShowNew(!showNew)}
+                                    className='absolute right-5 top-5 cursor-pointer text-[#64748B]'>
+
+                                    {showNew ? <EyeOff /> : <Eye />}
                                 </div>
                             </div>
                             <small className='text-gray-300 mt-2'>Min 8 Characters with a combination of letters and numbers</small>
@@ -53,13 +63,16 @@ export default function ChangePassword() {
                             <label className="block text-sm font-semibold" htmlFor="confirm_password">Confirmation New Password</label>
                             <div className='relative'>
                                 <input
-                                    type="password"
+                                    type={showConfirm ? "text" : "password"}
                                     id="confirm_password"
                                     placeholder="confirmation your new password"
                                     className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg"
                                 />
-                                <div>
-                                    <Eye className='absolute right-5 top-5 cursor-pointer text-[#64748B]' />
+                                <div
+                                    onClick={() => setShowConfirm(!showConfirm)}
+                                    className='absolute right-5 top-5 cursor-pointer text-[#64748B]'>
+
+                                    {showConfirm ? <EyeOff /> : <Eye />}
                                 </div>
                             </div>
                         </div>
