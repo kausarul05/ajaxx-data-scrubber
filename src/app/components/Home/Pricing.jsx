@@ -9,7 +9,7 @@ const pricingPlans = [
     {
         name: "Basic",
         des: "All features included to keep your personal data safe.",
-        price: "$10",
+        price: "$9.99",
         features: [
             { text: "Identities: up to 10", available: true },
             { text: "Scans / month: 10", available: true },
@@ -21,7 +21,7 @@ const pricingPlans = [
     {
         name: "Silver",
         des: "All features included to keep your personal data safe.",
-        price: "$20",
+        price: "$14.99",
         features: [
             { text: "Identities: up to 20", available: true },
             { text: "Scans / month: 20", available: true },
@@ -33,7 +33,19 @@ const pricingPlans = [
     {
         name: "Gold",
         des: "All features included to keep your personal data safe.",
-        price: "$30",
+        price: "$29.99",
+        features: [
+            { text: "Identities: Unlimited", available: true },
+            { text: "Scans / month: Unlimited", available: true },
+            { text: "Automated Data Removal", available: true },
+            { text: "PDF export: Unlimited", available: true },
+            { text: "Support (24–48h)", available: true },
+        ],
+    },
+    {
+        name: "Annual Plan",
+        des: "All features included to keep your personal data safe.",
+        price: "$99",
         features: [
             { text: "Identities: Unlimited", available: true },
             { text: "Scans / month: Unlimited", available: true },
@@ -185,7 +197,7 @@ export default function Pricing() {
             variants={containerVariants}
             className="bg-custom section-gap md:section-gap-sm text-white"
         >
-            <div className='w-full md:w-10/12 lg:w-8/12 mx-auto px-4 sm:px-6 lg:px-0'>
+            <div className='w-full mx-auto px-4 sm:px-6 lg:px-0'>
                 <motion.div 
                     variants={titleVariants}
                     className='mb-10 md:mb-14 text-center'
@@ -198,7 +210,7 @@ export default function Pricing() {
                     </p>
                 </motion.div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 text-white">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8 text-white">
                     {pricingPlans.map((plan, index) => (
                         <motion.div
                             key={plan.name}
@@ -221,14 +233,14 @@ export default function Pricing() {
                                 className='flex gap-2 items-baseline mb-3 flex-wrap relative z-10'
                             >
                                 <h4
-                                    className={`font-semibold text-xl sm:text-2xl ${plan.name === "Silver" || plan.name === "Gold"
+                                    className={`font-semibold text-xl sm:text-2xl ${plan.name === "Silver" || plan.name === "Gold" || plan.name === "Annual Plan"
                                         ? "text-[#007ED6]"
                                         : "text-white"
                                         }`}
                                 >
                                     {plan.name}
                                 </h4>
-                                <h4 className={`font-semibold text-xl sm:text-2xl ${plan.name === "Gold" ? 'text-[#007ED6]' : 'text-white'}`}>
+                                <h4 className={`font-semibold text-xl sm:text-2xl ${plan.name === "Annual Plan" ? 'text-[#007ED6]' : 'text-white'}`}>
                                     Protection
                                 </h4>
                             </motion.div>

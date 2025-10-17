@@ -28,30 +28,40 @@ export default function ChangePassword() {
                                     className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg"
                                 />
                                 <div>
-                                    <Eye className='absolute right-5 top-5 cursor-pointer' />
+                                    <Eye className='absolute right-5 top-5 cursor-pointer text-[#64748B]' />
                                 </div>
                             </div>
                         </div>
 
                         <div>
                             <label className="block text-sm font-semibold" htmlFor="new_password">New Password</label>
-                            <input
-                                type="password"
-                                id="new_password"
-                                placeholder="confirmation your new password"
-                                className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg"
-                            />
+                            <div className='relative'>
+                                <input
+                                    type="password"
+                                    id="new_password"
+                                    placeholder="Input your new password"
+                                    className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg"
+                                />
+                                <div>
+                                    <Eye className='absolute right-5 top-5 cursor-pointer text-[#64748B]' />
+                                </div>
+                            </div>
                             <small className='text-gray-300 mt-2'>Min 8 Characters with a combination of letters and numbers</small>
                         </div>
 
                         <div>
                             <label className="block text-sm font-semibold" htmlFor="confirm_password">Confirmation New Password</label>
-                            <input
-                                type="password"
-                                id="confirm_password"
-                                placeholder="Input your new password"
-                                className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg"
-                            />
+                            <div className='relative'>
+                                <input
+                                    type="password"
+                                    id="confirm_password"
+                                    placeholder="confirmation your new password"
+                                    className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg"
+                                />
+                                <div>
+                                    <Eye className='absolute right-5 top-5 cursor-pointer text-[#64748B]' />
+                                </div>
+                            </div>
                         </div>
 
 
