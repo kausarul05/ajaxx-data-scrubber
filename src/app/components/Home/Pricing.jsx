@@ -8,6 +8,7 @@ import { useRef } from 'react';
 const pricingPlans = [
     {
         name: "Basic",
+        duration : "month",
         des: "All features included to keep your personal data safe.",
         price: "$9.99",
         features: [
@@ -20,6 +21,7 @@ const pricingPlans = [
     },
     {
         name: "Silver",
+        duration : "month",
         des: "All features included to keep your personal data safe.",
         price: "$14.99",
         features: [
@@ -32,6 +34,7 @@ const pricingPlans = [
     },
     {
         name: "Gold",
+        duration : "month",
         des: "All features included to keep your personal data safe.",
         price: "$29.99",
         features: [
@@ -44,6 +47,7 @@ const pricingPlans = [
     },
     {
         name: "Annual Plan",
+        duration : "year",
         des: "All features included to keep your personal data safe.",
         price: "$99",
         features: [
@@ -258,7 +262,7 @@ export default function Pricing() {
                                 variants={priceVariants}
                                 className="text-sm font-bold mb-4 sm:mb-6 relative z-10"
                             >
-                                <span className="text-2xl sm:text-3xl text-[#007ED6]">{plan.price}</span> /month
+                                <span className="text-2xl sm:text-3xl text-[#007ED6]">{plan.price}</span> /{plan.duration}
                             </motion.p>
 
                             {/* Features */}

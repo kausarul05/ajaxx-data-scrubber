@@ -24,7 +24,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen">
       {/* Mobile Header with Red Background */}
-      <div className="lg:hidden fixed top-24 left-0 right-0 bg-red-500 text-white z-50 h-16 flex items-center justify-between px-4">
+      <div className="lg:hidden fixed top-23 left-0 right-0 bg-[#0C2A44] text-white z-50 h-16 flex items-center justify-between px-4">
         {/* 3-line Menu Button */}
         <button
           className="p-2 rounded"
@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         w-[300px] bg-[#0D314B] text-white py-14 px-8
         fixed lg:static inset-y-0 left-0
         transform transition-transform duration-300 ease-in-out
-        z-40 top-24
+        z-40 top-23
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         lg:mt-0 mt-16
       `}>
