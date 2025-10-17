@@ -1,9 +1,34 @@
-// pages/profile.tsx
-import React from 'react'
+'use client'
+
+
+import React, { useRef, useState } from 'react'
 import profile from "@/../public/images/profile.jpg"
 import Image from 'next/image'
+import { Pencil } from 'lucide-react'
 
 export default function Profile() {
+
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [preview, setPreview] = useState<any>(profile);
+
+    // Open file selector
+    const handleEditClick = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    // Handle image change
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const imageUrl = URL.createObjectURL(file);
+            setPreview(imageUrl);
+        }
+    };
+
+
+
     return (
         <div className="bg-[#0A2131] flex items-center justify-center p-8">
             <div className="bg-[#0D314B] text-white rounded-lg p-8 w-full">
@@ -11,11 +36,32 @@ export default function Profile() {
                 <h2 className="text-white text-lg font-medium mb-6">Profile Information</h2>
                 <div className="border-b border-[#007ED6] mb-6"></div>
                 <div className="flex mb-6">
-                    <Image
-                        src={profile}
-                        alt="Profile"
-                        className="w-24 h-24 rounded-xl object-cover"
-                    />
+                    <div className="relative">
+                        <Image
+                            src={preview}
+                            alt="Profile"
+                            width={96}
+                            height={96}
+                            className="w-24 h-24 rounded-xl object-cover"
+                        />
+
+                        {/* Edit Icon */}
+                        <div
+                            onClick={handleEditClick}
+                            className="absolute right-[-10px] bottom-0 bg-gray-600 p-2 rounded-full cursor-pointer hover:bg-gray-700 transition"
+                        >
+                            <Pencil size={20} color="white" />
+                        </div>
+
+                        {/* Hidden file input */}
+                        <input
+                            type="file"
+                            accept="image/*"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleFileChange}
+                        />
+                    </div>
                 </div>
 
                 <form>
