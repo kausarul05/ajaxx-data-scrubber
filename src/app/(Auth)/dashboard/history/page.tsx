@@ -204,19 +204,19 @@ export default function HistoryPage() {
     const modalPosition = getModalPosition();
 
     return (
-        <div className="min-h-screen bg-[#0A2131] p-8 sm:p-8 text-white">
-            <div className="bg-[#0C2A44] p-5 sm:p-8 rounded-2xl shadow-lg">
+        <div className="min-h-screen bg-[#0A2131] p-4 sm:p-6 lg:p-8 text-white">
+            <div className="bg-[#0C2A44] p-4 sm:p-6 lg:p-8 rounded-2xl shadow-lg">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-9 gap-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 lg:mb-9 gap-4">
                     <h1 className="text-lg font-medium">History</h1>
 
-                    <div className="flex items-center gap-4 pr-20">
+                    <div className="flex items-center gap-3 lg:gap-4 lg:pr-20">
                         {/* Dropdown */}
                         <div className="relative">
                             <select
                                 value={selectedRange}
                                 onChange={(e) => setSelectedRange(e.target.value)}
-                                className="bg-[#007ED6] text-white text-sm sm:text-sm px-4 py-2 rounded-md outline-none cursor-pointer"
+                                className="bg-[#007ED6] text-white text-sm px-3 sm:px-4 py-2 rounded-md outline-none cursor-pointer"
                             >
                                 <option>3 DAYS History</option>
                                 <option>7 DAYS History</option>
@@ -227,7 +227,7 @@ export default function HistoryPage() {
                         {/* Download button */}
                         <button
                             onClick={downloadPDF}
-                            className="bg-[#007ED6] hover:bg-[#026bb7] px-5.5 py-2 rounded-md transition"
+                            className="bg-[#007ED6] hover:bg-[#026bb7] p-2 sm:p-2 rounded-md transition"
                         >
                             <Download size={18} />
                         </button>
@@ -235,25 +235,25 @@ export default function HistoryPage() {
                 </div>
 
                 {/* History list */}
-                <div className="space-y-8 px-20">
+                <div className="space-y-6 lg:space-y-8 px-0 sm:px-4 lg:px-20">
                     {historyData.map((day, i) => (
                         <div key={i}>
-                            <div className="flex gap-5 items-center mb-4">
-                                <h2 className="text-xl font-semibold">{day.date}</h2>
+                            <div className="flex flex-col sm:flex-row sm:gap-5 sm:items-center mb-4 gap-2">
+                                <h2 className="text-lg sm:text-xl font-semibold">{day.date}</h2>
                                 <p className="text-sm font-medium">{day.time}</p>
                             </div>
 
-                            <div className="space-y-4">
+                            <div className="space-y-3 sm:space-y-4">
                                 {day.items.map((item, j) => {
                                     const itemKey = `${i}-${j}-${item.name}`;
                                     return (
                                         <div
                                             key={j}
-                                            className="flex justify-between items-center bg-[#0E3654]/40 rounded-lg px-4 py-3 transition hover:bg-[#114065]/50 relative"
+                                            className="flex justify-between items-center bg-[#0E3654]/40 rounded-lg px-3 sm:px-4 py-3 transition hover:bg-[#114065]/50 relative"
                                         >
                                             <div className="flex items-center gap-3">
                                                 {getServiceIcon(item.name)}
-                                                <span className="text-sm sm:text-sm font-bold capitalize">{item.name}</span>
+                                                <span className="text-sm font-bold capitalize">{item.name}</span>
                                             </div>
                                             <div
                                                 ref={el => { moreVerticalRefs.current[itemKey] = el; }}

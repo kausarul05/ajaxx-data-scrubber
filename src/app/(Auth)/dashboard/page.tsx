@@ -257,14 +257,14 @@ export default function Page() {
                                         className="flex items-center gap-2 bg-[#0ABF9D] text-white text-sm px-3 sm:px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
                                     >
                                         <Eye size={16} />
-                                        <span className="hidden xs:inline">View</span>
+                                        <span className="hidden sm:inline">View</span>
                                     </button>
                                     <button
                                         onClick={() => handleRemove(service.id)}
                                         className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm px-3 sm:px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
                                     >
                                         <Trash2 size={16} />
-                                        <span className="hidden xs:inline">Remove</span>
+                                        <span className="hidden sm:inline">Remove</span>
                                     </button>
                                 </div>
                             </div>
