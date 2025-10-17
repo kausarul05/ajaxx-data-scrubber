@@ -11,10 +11,8 @@ import {
     Music2,
     Linkedin,
     Youtube,
-    ExternalLink,
     FileText
 } from "lucide-react";
-import Image from "next/image";
 import jsPDF from "jspdf";
 
 export default function HistoryPage() {
@@ -93,7 +91,7 @@ export default function HistoryPage() {
             doc.setFontSize(12);
             doc.text(`${day.date} - ${day.time}`, 20, y);
             y += 8;
-            day.items.forEach((item, index) => {
+            day.items.forEach((item) => {
                 doc.text(`- ${item.name}`, 25, y);
                 y += 8;
             });

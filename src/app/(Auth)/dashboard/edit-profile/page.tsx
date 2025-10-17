@@ -9,7 +9,8 @@ import { Pencil } from 'lucide-react'
 export default function Profile() {
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const [preview, setPreview] = useState<any>(profile);
+    const [preview, setPreview] = useState<string>(profile.src);
+
 
     // Open file selector
     const handleEditClick = () => {

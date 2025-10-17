@@ -1,10 +1,8 @@
 'use client'
 
 
-import React, { useRef, useState } from 'react'
-import profile from "@/../public/images/profile.jpg"
-import Image from 'next/image'
-import { Eye, EyeOff, Pencil } from 'lucide-react'
+import React, { useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function ChangePassword() {
     const [showOld, setShowOld] = useState(false)
