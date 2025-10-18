@@ -5,11 +5,15 @@ import React, { useState, useEffect } from 'react'
 import logo from "@/../public/images/logo.png"
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import LoginModal from '../components/Modal/LoginModal';
+import RegisterModal from '../components/Modal/RegisterModal';
 
 function Navbar() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+
+    const [activeModal, setActiveModal] = useState<"login" | "register" | null>(null);
 
     const pathname = usePathname();
 
@@ -42,7 +46,7 @@ function Navbar() {
     }, []);
 
     // Close mobile menu when clicking on a link
-    const handleMenuItemClick = (index) => {
+    const handleMenuItemClick = (index: number): void => {
         setActiveIndex(index);
         setIsMenuOpen(false);
     };
@@ -70,8 +74,8 @@ function Navbar() {
                         <li
                             key={index}
                             className={`cursor-pointer px-6 py-3 rounded font-medium text-sm transition-all duration-300 transform hover:scale-105 ${pathname === item.link
-                                    ? "bg-[#007ED6] text-white shadow-lg shadow-[#007ED6]/50"
-                                    : "hover:bg-[#007ED6]/20 hover:text-white/90"
+                                ? "bg-[#007ED6] text-white shadow-lg shadow-[#007ED6]/50"
+                                : "hover:bg-[#007ED6]/20 hover:text-white/90"
                                 }`}
                         >
                             <Link href={item.link}>
@@ -85,10 +89,16 @@ function Navbar() {
 
                 {/* Desktop Auth Buttons */}
                 <ul className="hidden lg:flex gap-6 items-center font-medium text-sm">
-                    <li className="hover:text-blue-300 cursor-pointer border border-[#007ED6] py-2 px-6 rounded-lg transition-all duration-300 hover:bg-[#007ED6]/10 hover:border-[#007ED6]/80 hover:scale-105">
+                    <li
+                        onClick={() => setActiveModal("login")}
+                        className="hover:text-blue-300 cursor-pointer border border-[#007ED6] py-2 px-6 rounded-lg transition-all duration-300 hover:bg-[#007ED6]/10 hover:border-[#007ED6]/80 hover:scale-105"
+                    >
                         Sign In
                     </li>
-                    <li className="bg-[#007ED6] px-6 py-2 rounded hover:bg-[#007ED6]/90 cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#007ED6]/40">
+                    <li
+                        onClick={() => setActiveModal("register")}
+                        className="bg-[#007ED6] px-6 py-2 rounded hover:bg-[#007ED6]/90 cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#007ED6]/40"
+                    >
                         Sign Up
                     </li>
                 </ul>
@@ -113,11 +123,11 @@ function Navbar() {
                     : 'opacity-0 invisible'
                     }`}>
                     {/* Background Overlay */}
-                    <div 
+                    <div
                         className={`absolute inset-0 bg-black transition-opacity duration-500 ${isMenuOpen ? 'opacity-70' : 'opacity-0'}`}
                         onClick={() => setIsMenuOpen(false)}
                     />
-                    
+
                     {/* Menu Content */}
                     <div className={`absolute top-0 left-0 w-full min-h-screen bg-[#0A3740] transition-transform duration-500 ease-in-out ${isMenuOpen
                         ? 'translate-y-0'
@@ -160,6 +170,20 @@ function Navbar() {
                         </div>
                     </div>
                 </div>
+                {/* Modals */}
+                {activeModal === "login" && (
+                    <LoginModal
+                        onClose={() => setActiveModal(null)}
+                        onSwitchToRegister={() => setActiveModal("register")}
+                    />
+                )}
+
+                {activeModal === "register" && (
+                    <RegisterModal
+                        onClose={() => setActiveModal(null)}
+                        onSwitchToLogin={() => setActiveModal("login")}
+                    />
+                )}
             </nav>
         </div>
     )
