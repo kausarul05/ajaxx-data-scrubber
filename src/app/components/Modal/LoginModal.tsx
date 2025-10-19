@@ -6,7 +6,7 @@ import { X, Mail, Lock, Eye, EyeOff } from "lucide-react";
 type Props = {
     onClose: () => void;
     onSwitchToRegister: () => void;
-    setActiveModal: (value: "login" | "register" | null) => void;
+    setActiveModal: (value: "login" | "register" | "forgotPassword") => void;
 };
 
 
