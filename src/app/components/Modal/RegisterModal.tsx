@@ -31,7 +31,7 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
             }, 1000); // 3 seconds
             return () => clearTimeout(timer);
         }
-    }, [step, router]);
+    }, [step, router, onClose]);
 
     const handleRegister = () => {
         setStep(2);
@@ -70,9 +70,9 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
         setStep(3)
     };
 
-    const handleSuccess = () => {
-        onClose();
-    };
+    // const handleSuccess = () => {
+    //     onClose();
+    // };
 
     return (
         <div className="h-screen fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -90,7 +90,7 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                     {step === 1 && (
                         <div>
                             <h2 className="text-2xl font-bold text-white mb-2">Register</h2>
-                            <p className="text-white mb-6">Let's create new account</p>
+                            <p className="text-white mb-6">Let&apos;s create new account</p>
 
                             <div className="space-y-5">
                                 <div>
@@ -203,7 +203,7 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
 
                             <div className="text-center">
                                 <span className="text-sm text-[#E5E5E5]">
-                                    Didn't receive the code?{" "}
+                                    Didn&apos;t receive the code?{" "}
                                     <button
                                         onClick={handleResendCode}
                                         disabled={!canResend}

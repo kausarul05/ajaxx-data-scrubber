@@ -43,7 +43,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
 
                 <div className="md:p-8 p-4">
                     <h2 className="text-2xl font-semibold text-white mb-3">Login</h2>
-                    <p className="text-[#E5E5E5] font-medium mb-8">Let's login into your account first</p>
+                    <p className="text-[#E5E5E5] font-medium mb-8">Let&apos;s login into your account first</p>
 
                     <div className="space-y-5">
                         <div>
@@ -103,7 +103,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                         </button>
 
                         <div className=" text-sm text-white">
-                            Don't have an account?{" "}
+                            Don&apos;t have an account?{" "}
                             <button
                                 onClick={onSwitchToRegister}
                                 className="text-[#0ABF9D] font-medium cursor-pointer"

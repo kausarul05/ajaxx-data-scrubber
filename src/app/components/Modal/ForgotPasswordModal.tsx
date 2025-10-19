@@ -6,12 +6,11 @@ import { useRouter } from "next/navigation";
 
 type Props = {
   onClose: () => void;
-  onSwitchToLogin: () => void;
 };
 
 type ForgotPasswordStep = "email" | "verification" | "newPassword" | "success";
 
-export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props) {
+export default function ForgotPasswordModal({ onClose }: Props) {
   const [currentStep, setCurrentStep] = useState<ForgotPasswordStep>("email");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -43,7 +42,7 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
       }, 1000); // 3 seconds
       return () => clearTimeout(timer);
     }
-  }, [currentStep, router]);
+  }, [currentStep, router, onClose]);
 
   const handleEmailSubmit = () => {
     setCurrentStep("verification");
@@ -215,7 +214,7 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
 
               <div className="text-center">
                 <span className="text-sm text-[#E5E5E5]">
-                  Didn't receive the code?{" "}
+                  Didn&apos;t receive the code?{" "}
                   <button
                     onClick={handleResendCode}
                     disabled={!canResend}

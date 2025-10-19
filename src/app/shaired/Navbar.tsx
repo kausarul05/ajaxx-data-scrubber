@@ -206,7 +206,6 @@ function Navbar() {
                 {activeModal === "forgotPassword" && (
                     <ForgotPasswordModal
                         onClose={() => setActiveModal(null)}
-                        onSwitchToLogin={() => setActiveModal("login")}
                     />
                 )}
 
