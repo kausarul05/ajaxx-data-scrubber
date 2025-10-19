@@ -1,0 +1,304 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { X, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
+
+type Props = {
+  onClose: () => void;
+  onSwitchToLogin: () => void;
+};
+
+type ForgotPasswordStep = "email" | "verification" | "newPassword" | "success";
+
+export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props) {
+  const [currentStep, setCurrentStep] = useState<ForgotPasswordStep>("email");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [verificationCode, setVerificationCode] = useState(["", "", "", ""]);
+  const [countdown, setCountdown] = useState(59);
+  const [canResend, setCanResend] = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  // Countdown timer for resend code
+  useEffect(() => {
+    if (currentStep === "verification" && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0) {
+      setCanResend(true);
+    }
+  }, [currentStep, countdown]);
+
+  const handleEmailSubmit = () => {
+    setCurrentStep("verification");
+    setCountdown(59);
+    setCanResend(false);
+  };
+
+  const handleVerificationSubmit = () => {
+    setCurrentStep("newPassword");
+  };
+
+  const handleNewPasswordSubmit = () => {
+    setCurrentStep("success");
+  };
+
+  const handleResendCode = () => {
+    if (canResend) {
+      setCountdown(59);
+      setCanResend(false);
+      // Add resend logic here
+    }
+  };
+
+  const handleVerificationCodeChange = (value: string, index: number) => {
+    if (/^\d?$/.test(value)) {
+      const newCode = [...verificationCode];
+      newCode[index] = value;
+      setVerificationCode(newCode);
+
+      // Auto-focus next input
+      if (value !== "" && index < 3) {
+        const nextInput = document.getElementById(`verification-${index + 1}`);
+        if (nextInput) nextInput.focus();
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === "Backspace" && verificationCode[index] === "" && index > 0) {
+      const prevInput = document.getElementById(`verification-${index - 1}`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case "email":
+        return "Forgot Password";
+      case "verification":
+        return "Verification Code";
+      case "newPassword":
+        return "Create New Password";
+      case "success":
+        return "Successful!";
+      default:
+        return "Forgot Password";
+    }
+  };
+
+  const getStepDescription = () => {
+    switch (currentStep) {
+      case "email":
+        return "Enter your email, we will send a verification code to your email.";
+      case "verification":
+        return "Enter the verification code that we have sent to your Email";
+      case "newPassword":
+        return "Your password must be different from previous used password.";
+      case "success":
+        return "Your password has been changed successfully.";
+      default:
+        return "";
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      
+      {/* Modal Container */}
+      <div className="relative bg-[#0A2131] text-white rounded-2xl w-full max-w-[480px] mx-auto shadow-2xl">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute -top-3 -right-3 bg-gray-700 hover:bg-gray-600 rounded-full p-2 cursor-pointer text-white transition-colors z-10"
+        >
+          <X size={20} />
+        </button>
+
+        <div className="p-8">
+          {/* Back Button for steps after email */}
+          {currentStep !== "email" && currentStep !== "success" && (
+            <button
+              onClick={() => setCurrentStep("email")}
+              className="flex items-center gap-2 text-[#0ABF9D] mb-4 cursor-pointer hover:text-[#08a386] transition-colors"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </button>
+          )}
+
+          {/* Step Title and Description */}
+          <h2 className="text-2xl font-semibold text-white mb-3">
+            {getStepTitle()}
+          </h2>
+          <p className="text-[#E5E5E5] font-medium mb-8">
+            {getStepDescription()}
+          </p>
+
+          {/* Step 1: Email Input */}
+          {currentStep === "email" && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-white mb-2">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="email"
+                    placeholder="Enter your Email"
+                    className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleEmailSubmit}
+                className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] transition-colors"
+              >
+                Continue
+              </button>
+
+              <div className="text-center">
+                <button
+                  onClick={onSwitchToLogin}
+                  className="text-[#0ABF9D] font-medium cursor-pointer hover:text-[#08a386] transition-colors"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Verification Code */}
+          {currentStep === "verification" && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-white mb-4">
+                  Enter verification code
+                </label>
+                <div className="flex gap-3 justify-center">
+                  {verificationCode.map((digit, index) => (
+                    <input
+                      key={index}
+                      id={`verification-${index}`}
+                      type="text"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleVerificationCodeChange(e.target.value, index)}
+                      onKeyDown={(e) => handleKeyDown(e, index)}
+                      className="w-14 h-14 bg-[#0D314B] border border-[#007ED6] rounded-lg text-center text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="text-center">
+                <span className="text-sm text-[#E5E5E5]">
+                  Didn't receive the code?{" "}
+                  <button
+                    onClick={handleResendCode}
+                    disabled={!canResend}
+                    className={`font-medium cursor-pointer ${
+                      canResend 
+                        ? "text-[#0ABF9D] hover:text-[#08a386]" 
+                        : "text-gray-500 cursor-not-allowed"
+                    } transition-colors`}
+                  >
+                    {canResend ? "Resend code" : `Resend code at 00:${countdown.toString().padStart(2, '0')}`}
+                  </button>
+                </span>
+              </div>
+
+              <button
+                onClick={handleVerificationSubmit}
+                disabled={verificationCode.some(digit => digit === "")}
+                className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          )}
+
+          {/* Step 3: New Password */}
+          {currentStep === "newPassword" && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-white mb-2">
+                  New Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your new password"
+                    className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 cursor-pointer transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-white mb-2">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm Password"
+                    className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 cursor-pointer transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={handleNewPasswordSubmit}
+                className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          )}
+
+          {/* Step 4: Success */}
+          {currentStep === "success" && (
+            <div className="space-y-6 text-center">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              
+              <button
+                onClick={onSwitchToLogin}
+                className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] transition-colors"
+              >
+                Back to Login
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
