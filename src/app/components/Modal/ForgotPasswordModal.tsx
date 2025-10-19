@@ -194,9 +194,9 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
           {currentStep === "verification" && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-white mb-4">
+                {/* <label className="block text-sm font-semibold text-white mb-4">
                   Enter verification code
-                </label>
+                </label> */}
                 <div className="flex gap-3 justify-center">
                   {verificationCode.map((digit, index) => (
                     <input

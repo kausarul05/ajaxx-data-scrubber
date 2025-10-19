@@ -41,7 +41,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                     <X size={24} />
                 </button>
 
-                <div className="p-12">
+                <div className="md:p-8 p-4">
                     <h2 className="text-2xl font-semibold text-white mb-3">Login</h2>
                     <p className="text-[#E5E5E5] font-medium mb-8">Let's login into your account first</p>
 

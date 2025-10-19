@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type Props = {
     onClose: () => void;
@@ -12,18 +13,61 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
     const [step, setStep] = useState<number>(1);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [verificationCode, setVerificationCode] = useState(["", "", "", ""]);
+    const [countdown, setCountdown] = useState(59);
+    const [canResend, setCanResend] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
         return () => { document.body.style.overflow = ""; };
     }, []);
 
+    useEffect(() => {
+        if (step === 3) {
+            const timer = setTimeout(() => {
+                onClose();
+                router.push("/dashboard"); // <-- Redirect to dashboard
+            }, 1000); // 3 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [step, router]);
+
     const handleRegister = () => {
         setStep(2);
     };
 
-    const handleVerification = () => {
-        setStep(3);
+    const handleVerificationCodeChange = (value: string, index: number) => {
+        if (/^\d?$/.test(value)) {
+            const newCode = [...verificationCode];
+            newCode[index] = value;
+            setVerificationCode(newCode);
+
+            // Auto-focus next input
+            if (value !== "" && index < 3) {
+                const nextInput = document.getElementById(`verification-${index + 1}`);
+                if (nextInput) nextInput.focus();
+            }
+        }
+    };
+
+    const handleResendCode = () => {
+        if (canResend) {
+            setCountdown(59);
+            setCanResend(false);
+            // Add resend logic here
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+        if (e.key === "Backspace" && verificationCode[index] === "" && index > 0) {
+            const prevInput = document.getElementById(`verification-${index - 1}`);
+            if (prevInput) prevInput.focus();
+        }
+    };
+
+    const handleVerificationSubmit = () => {
+        setStep(3)
     };
 
     const handleSuccess = () => {
@@ -32,48 +76,48 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
 
     return (
         <div className="h-screen fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+            <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
-            <div className="relative bg-white rounded-2xl w-full max-w-md mx-auto">
+            <div className="relative bg-[#0A2131] text-white rounded-2xl w-full max-w-[550px] mx-auto drop-shadow-sm drop-shadow-[#0ABF9D66]">
                 <button
                     onClick={onClose}
-                    className="absolute -top-12 right-0 text-white p-1"
+                    className="absolute top-3 right-3 text-white p-1"
                 >
                     <X size={24} />
                 </button>
 
-                <div className="p-6">
+                <div className="md:p-8 p-4">
                     {step === 1 && (
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Register</h2>
-                            <p className="text-gray-600 mb-6">Let's create new account</p>
+                            <h2 className="text-2xl font-bold text-white mb-2">Register</h2>
+                            <p className="text-white mb-6">Let's create new account</p>
 
-                            <div className="space-y-4">
+                            <div className="space-y-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                    <label className="block text-sm font-semibold text-white mb-2">Email</label>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                         <input
                                             type="email"
                                             placeholder="Enter your Email"
-                                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                    <label className="block text-sm font-semibold text-white mb-2">Password</label>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                         <input
                                             type={showPassword ? "text" : "password"}
                                             placeholder="Enter your password"
-                                            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
                                         >
                                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                         </button>
@@ -84,18 +128,18 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                                    <label className="block text-sm font-semibold text-white mb-2">Confirm Password</label>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                         <input
                                             type={showConfirmPassword ? "text" : "password"}
                                             placeholder="Confirm Password"
-                                            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
                                         >
                                             {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                         </button>
@@ -104,12 +148,12 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
 
                                 <button
                                     onClick={handleRegister}
-                                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                                    className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer  transition-colors"
                                 >
                                     Register
                                 </button>
 
-                                <button className="w-full border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                                <button className="w-full bg-[#0D314B] border border-[#007ED6] text-white py-3 rounded-lg font-semibold drop-shadow-2xl transition-colors flex items-center justify-center gap-2 cursor-pointer">
                                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -119,11 +163,11 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                                     Continue with Google
                                 </button>
 
-                                <div className="text-center text-sm text-gray-600">
+                                <div className="text-sm text-white">
                                     Already have an account?{" "}
                                     <button
                                         onClick={onSwitchToLogin}
-                                        className="text-blue-600 hover:text-blue-500 font-medium"
+                                        className="text-[#0ABF9D] font-medium cursor-pointer"
                                     >
                                         Sign In
                                     </button>
@@ -133,29 +177,50 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                     )}
 
                     {step === 2 && (
-                        <div className="text-center">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Verification Code</h2>
-                            <p className="text-gray-600 mb-6">Enter the verification code that we have sent to your Email</p>
-
-                            <div className="flex justify-center gap-2 mb-6">
-                                {[1, 2, 3, 4].map((item) => (
-                                    <input
-                                        key={item}
-                                        type="text"
-                                        maxLength={1}
-                                        className="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                ))}
+                        <div className="space-y-6">
+                            <div>
+                                <h2 className="text-2xl font-semibold text-white mb-3">
+                                    Verification Code
+                                </h2>
+                                <p className="text-[#E5E5E5] font-medium mb-8 w-2/3">
+                                    Enter the verification code that we have sent to your Email
+                                </p>
+                                <div className="flex gap-3 justify-center">
+                                    {verificationCode.map((digit, index) => (
+                                        <input
+                                            key={index}
+                                            id={`verification-${index}`}
+                                            type="text"
+                                            maxLength={1}
+                                            value={digit}
+                                            onChange={(e) => handleVerificationCodeChange(e.target.value, index)}
+                                            onKeyDown={(e) => handleKeyDown(e, index)}
+                                            className="w-14 h-14 bg-[#0D314B] border border-[#007ED6] rounded-lg text-center text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="text-sm text-gray-600 mb-6">
-                                <div>Didn't receive the code? <span className="text-blue-600 font-medium">Record code</span></div>
-                                <div className="text-xs mt-1">Record code at 10:30</div>
+                            <div className="text-center">
+                                <span className="text-sm text-[#E5E5E5]">
+                                    Didn't receive the code?{" "}
+                                    <button
+                                        onClick={handleResendCode}
+                                        disabled={!canResend}
+                                        className={`font-medium cursor-pointer ${canResend
+                                            ? "text-[#0ABF9D] hover:text-[#08a386]"
+                                            : "text-gray-500 cursor-not-allowed"
+                                            } transition-colors`}
+                                    >
+                                        {canResend ? "Resend code" : `Resend code at 00:${countdown.toString().padStart(2, '0')}`}
+                                    </button>
+                                </span>
                             </div>
 
                             <button
-                                onClick={handleVerification}
-                                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                                onClick={handleVerificationSubmit}
+                                disabled={verificationCode.some(digit => digit === "")}
+                                className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
                             >
                                 Continue
                             </button>
@@ -163,22 +228,40 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                     )}
 
                     {step === 3 && (
-                        <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        <div className="flex flex-col items-center justify-center text-center space-y-6 py-8">
+                            {/* Blue outlined check icon */}
+                            <div className="w-20 h-20 flex items-center justify-center mb-2">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 512 512"
+                                    className="w-20 h-20 text-[#007ED6]"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="20"
+                                >
+                                    <circle cx="256" cy="256" r="200" stroke="#007ED6" strokeWidth="20" fill="none" />
+                                    <path
+                                        stroke="#007ED6"
+                                        strokeWidth="20"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M176 260l50 50 110-110"
+                                    />
                                 </svg>
                             </div>
 
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Successful!</h2>
-                            <p className="text-gray-600 mb-6">Your registration was completed successfully</p>
+                            {/* Title */}
+                            <h2 className="text-2xl font-semibold text-white">Successful!</h2>
 
-                            <button
-                                onClick={handleSuccess}
-                                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                            >
-                                Continue to Dashboard
-                            </button>
+                            {/* Description */}
+                            <p className="text-[#E5E5E5] text-sm">
+                                Your password has been changed successfully.
+                            </p>
+
+                            {/* Loading spinner */}
+                            <div className="mt-6 flex justify-center">
+                                <div className="w-8 h-8 border-4 border-t-[#007ED6] border-[#0A2131] rounded-full animate-spin" />
+                            </div>
                         </div>
                     )}
                 </div>
