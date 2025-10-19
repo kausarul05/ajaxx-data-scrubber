@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type Props = {
   onClose: () => void;
@@ -17,6 +18,7 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
   const [verificationCode, setVerificationCode] = useState(["", "", "", ""]);
   const [countdown, setCountdown] = useState(59);
   const [canResend, setCanResend] = useState(false);
+   const router = useRouter();
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -32,6 +34,16 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
       setCanResend(true);
     }
   }, [currentStep, countdown]);
+
+  useEffect(() => {
+    if (currentStep === "success") {
+      const timer = setTimeout(() => {
+        onClose();
+        router.push("/dashboard"); // <-- Redirect to dashboard
+      }, 1000); // 3 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, router]);
 
   const handleEmailSubmit = () => {
     setCurrentStep("verification");
@@ -100,17 +112,18 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
       case "newPassword":
         return "Your password must be different from previous used password.";
       case "success":
-        return "Your password has been changed successfully.";
+      // return "Your password has been changed successfully.";
       default:
         return "";
     }
   };
 
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="h-screen fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      
+
       {/* Modal Container */}
       <div className="relative bg-[#0A2131] text-white rounded-2xl w-full max-w-[480px] mx-auto shadow-2xl">
         {/* Close Button */}
@@ -153,6 +166,7 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
                   <input
                     type="email"
                     placeholder="Enter your Email"
+                    required
                     className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -165,14 +179,14 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
                 Continue
               </button>
 
-              <div className="text-center">
+              {/* <div className="text-center">
                 <button
                   onClick={onSwitchToLogin}
                   className="text-[#0ABF9D] font-medium cursor-pointer hover:text-[#08a386] transition-colors"
                 >
                   Back to Login
                 </button>
-              </div>
+              </div> */}
             </div>
           )}
 
@@ -205,11 +219,10 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
                   <button
                     onClick={handleResendCode}
                     disabled={!canResend}
-                    className={`font-medium cursor-pointer ${
-                      canResend 
-                        ? "text-[#0ABF9D] hover:text-[#08a386]" 
-                        : "text-gray-500 cursor-not-allowed"
-                    } transition-colors`}
+                    className={`font-medium cursor-pointer ${canResend
+                      ? "text-[#0ABF9D] hover:text-[#08a386]"
+                      : "text-gray-500 cursor-not-allowed"
+                      } transition-colors`}
                   >
                     {canResend ? "Resend code" : `Resend code at 00:${countdown.toString().padStart(2, '0')}`}
                   </button>
@@ -281,7 +294,7 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
           )}
 
           {/* Step 4: Success */}
-          {currentStep === "success" && (
+          {/* {currentStep === "success" && (
             <div className="space-y-6 text-center">
               <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,7 +309,46 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
                 Back to Login
               </button>
             </div>
+          )} */}
+
+          {currentStep === "success" && (
+            <div className="flex flex-col items-center justify-center text-center space-y-6 py-8">
+              {/* Blue outlined check icon */}
+              <div className="w-20 h-20 flex items-center justify-center mb-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 512 512"
+                  className="w-20 h-20 text-[#007ED6]"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="20"
+                >
+                  <circle cx="256" cy="256" r="200" stroke="#007ED6" strokeWidth="20" fill="none" />
+                  <path
+                    stroke="#007ED6"
+                    strokeWidth="20"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M176 260l50 50 110-110"
+                  />
+                </svg>
+              </div>
+
+              {/* Title */}
+              <h2 className="text-2xl font-semibold text-white">Successful!</h2>
+
+              {/* Description */}
+              <p className="text-[#E5E5E5] text-sm">
+                Your password has been changed successfully.
+              </p>
+
+              {/* Loading spinner */}
+              <div className="mt-6 flex justify-center">
+                <div className="w-8 h-8 border-4 border-t-[#007ED6] border-[#0A2131] rounded-full animate-spin" />
+              </div>
+            </div>
           )}
+
         </div>
       </div>
     </div>

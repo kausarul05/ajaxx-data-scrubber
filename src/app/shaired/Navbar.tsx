@@ -7,13 +7,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import LoginModal from '../components/Modal/LoginModal';
 import RegisterModal from '../components/Modal/RegisterModal';
+import ForgotPasswordModal from '../components/Modal/ForgotPasswordModal';
 
 function Navbar() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
 
-    const [activeModal, setActiveModal] = useState<"login" | "register" | null>(null);
+    // const [activeModal, setActiveModal] = useState<"login" | "register" | null>(null);
+    const [activeModal, setActiveModal] = useState<"login" | "register" | "forgotPassword" | null>(null);
+
 
     const pathname = usePathname();
 
@@ -171,10 +174,25 @@ function Navbar() {
                     </div>
                 </div>
                 {/* Modals */}
+                {/* {activeModal === "login" && (
+                    <LoginModal
+                        onClose={() => setActiveModal(null)}
+                        onSwitchToRegister={() => setActiveModal("register")}
+                        setActiveModal={setActiveModal}
+                    />
+                )}
+
+                {activeModal === "register" && (
+                    <RegisterModal
+                        onClose={() => setActiveModal(null)}
+                        onSwitchToLogin={() => setActiveModal("login")}
+                    />
+                )} */}
                 {activeModal === "login" && (
                     <LoginModal
                         onClose={() => setActiveModal(null)}
                         onSwitchToRegister={() => setActiveModal("register")}
+                        setActiveModal={setActiveModal}
                     />
                 )}
 
@@ -184,6 +202,14 @@ function Navbar() {
                         onSwitchToLogin={() => setActiveModal("login")}
                     />
                 )}
+
+                {activeModal === "forgotPassword" && (
+                    <ForgotPasswordModal
+                        onClose={() => setActiveModal(null)}
+                        onSwitchToLogin={() => setActiveModal("login")}
+                    />
+                )}
+
             </nav>
         </div>
     )

@@ -2,21 +2,26 @@
 
 import { useState, useEffect } from "react";
 import { X, Mail, Lock, Eye, EyeOff } from "lucide-react";
-import ForgotPasswordModal from "./ForgotPasswordModal";
 
 type Props = {
     onClose: () => void;
     onSwitchToRegister: () => void;
+    setActiveModal: (value: "login" | "register" | null) => void;
 };
 
-export default function LoginModal({ onClose, onSwitchToRegister }: Props) {
+
+export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal }: Props) {
     const [showPassword, setShowPassword] = useState(false);
-    const [showForgotPassword, setShowForgotPassword] = useState(false);
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
         return () => { document.body.style.overflow = ""; };
     }, []);
+
+    const handleOpenForgetPasswordModal = () => {
+        setActiveModal("forgotPassword"); // switch control to Navbar
+    };
+
 
     const handleLogin = () => {
         // Login logic here
@@ -77,7 +82,7 @@ export default function LoginModal({ onClose, onSwitchToRegister }: Props) {
                                 <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
                                 <span className="ml-2 text-xs text-white">Remember Me</span>
                             </label>
-                            <button onClick={() => setShowForgotPassword(true)} className="text-sm text-[#EB4335] cursor-pointer">Forget Password?</button>
+                            <button onClick={() => handleOpenForgetPasswordModal()} className="text-sm text-[#EB4335] cursor-pointer">Forget Password?</button>
                         </div>
 
                         <button
@@ -108,12 +113,6 @@ export default function LoginModal({ onClose, onSwitchToRegister }: Props) {
                         </div>
                     </div>
                 </div>
-                {showForgotPassword && (
-                    <ForgotPasswordModal
-                        onClose={() => setShowForgotPassword(false)}
-                        onSwitchToLogin={() => setShowForgotPassword(false)}
-                    />
-                )}
             </div>
         </div>
     );
