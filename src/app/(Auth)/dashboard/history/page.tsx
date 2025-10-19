@@ -19,8 +19,6 @@ export default function HistoryPage() {
     const [selectedRange, setSelectedRange] = useState("3 DAYS History");
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState<{ name: string; icon: string } | null>(null);
-    const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
-    const moreVerticalRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
     const modalRef = useRef<HTMLDivElement>(null);
 
     const [historyData, setHistoryData] = useState([
@@ -50,7 +48,7 @@ export default function HistoryPage() {
         },
     ]);
 
-    // Close modal when clicking outside and update position on scroll
+    // Close modal when clicking outside or pressing Escape key
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
@@ -58,28 +56,25 @@ export default function HistoryPage() {
             }
         };
 
-        const updateModalPosition = () => {
-            if (modalOpen && selectedItemKey && moreVerticalRefs.current[selectedItemKey]) {
-                const buttonElement = moreVerticalRefs.current[selectedItemKey];
-                if (buttonElement) {
-                    // Force re-render by updating state (we'll use a dummy state)
-                    setSelectedItem(prev => prev ? {...prev} : null);
-                }
+        const handleEscapeKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setModalOpen(false);
             }
         };
 
         if (modalOpen) {
             document.addEventListener('mousedown', handleClickOutside);
-            window.addEventListener('scroll', updateModalPosition, true);
-            window.addEventListener('resize', updateModalPosition);
+            document.addEventListener('keydown', handleEscapeKey);
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
-            window.removeEventListener('scroll', updateModalPosition, true);
-            window.removeEventListener('resize', updateModalPosition);
+            document.removeEventListener('keydown', handleEscapeKey);
+            document.body.style.overflow = 'unset';
         };
-    }, [modalOpen, selectedItemKey]);
+    }, [modalOpen]);
 
     const downloadPDF = () => {
         const doc = new jsPDF();
@@ -171,37 +166,11 @@ export default function HistoryPage() {
         }
     };
 
-    const getModalPosition = () => {
-        if (!selectedItemKey || !moreVerticalRefs.current[selectedItemKey]) {
-            return { x: 0, y: 0 };
-        }
-
-        const buttonElement = moreVerticalRefs.current[selectedItemKey];
-        if (!buttonElement) return { x: 0, y: 0 };
-
-        const rect = buttonElement.getBoundingClientRect();
-        const scrollX = window.scrollX || window.pageXOffset;
-        const scrollY = window.scrollY || window.pageYOffset;
-        
-        // Position the modal to the LEFT of the 3 dots icon
-        return {
-            x: rect.left + scrollX - 270, // 270px to the left (modal width + padding)
-            y: rect.top + scrollY - 10 // Align with the top of the icon
-        };
-    };
-
-    const handleMoreClick = (e: React.MouseEvent, item: { name: string; icon: string }, itemKey: string) => {
+    const handleMoreClick = (e: React.MouseEvent, item: { name: string; icon: string }) => {
         e.stopPropagation();
-        
-        const buttonElement = moreVerticalRefs.current[itemKey];
-        if (buttonElement) {
-            setSelectedItem(item);
-            setSelectedItemKey(itemKey);
-            setModalOpen(true);
-        }
+        setSelectedItem(item);
+        setModalOpen(true);
     };
-
-    const modalPosition = getModalPosition();
 
     return (
         <div className="min-h-screen bg-[#0A2131] p-4 sm:p-6 lg:p-8 text-white">
@@ -244,72 +213,73 @@ export default function HistoryPage() {
                             </div>
 
                             <div className="space-y-3 sm:space-y-4">
-                                {day.items.map((item, j) => {
-                                    const itemKey = `${i}-${j}-${item.name}`;
-                                    return (
-                                        <div
-                                            key={j}
-                                            className="flex justify-between items-center bg-[#0E3654]/40 rounded-lg px-3 sm:px-4 py-3 transition hover:bg-[#114065]/50 relative"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                {getServiceIcon(item.name)}
-                                                <span className="text-sm font-bold capitalize">{item.name}</span>
-                                            </div>
-                                            <div
-                                                ref={el => { moreVerticalRefs.current[itemKey] = el; }}
-                                                className="relative"
-                                            >
-                                                <MoreVertical
-                                                    className="text-gray-300 cursor-pointer hover:text-white"
-                                                    size={18}
-                                                    onClick={(e) => handleMoreClick(e, item, itemKey)}
-                                                />
-                                            </div>
+                                {day.items.map((item, j) => (
+                                    <div
+                                        key={j}
+                                        className="flex justify-between items-center bg-[#0E3654]/40 rounded-lg px-3 sm:px-4 py-3 transition hover:bg-[#114065]/50 relative"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {getServiceIcon(item.name)}
+                                            <span className="text-sm font-bold capitalize">{item.name}</span>
                                         </div>
-                                    );
-                                })}
+                                        <div className="relative">
+                                            <MoreVertical
+                                                className="text-gray-300 cursor-pointer hover:text-white"
+                                                size={18}
+                                                onClick={(e) => handleMoreClick(e, item)}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* Modal */}
-            {modalOpen && selectedItem && (
-                <div className="fixed inset-0 z-50">
+            {/* Modal Overlay */}
+            {modalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                     {/* Modal Content */}
                     <div
                         ref={modalRef}
-                        className="fixed bg-white text-gray-900 rounded-lg shadow-xl p-4 w-64 border border-gray-200 z-50"
-                        style={{ 
-                            top: `${modalPosition.y}px`, 
-                            left: `${modalPosition.x}px`,
-                        }}
+                        className="bg-[#0A2131] text-white rounded-xl shadow-2xl w-full max-w-sm mx-4 border border-gray-200 transform transition-all"
                     >
                         {/* Header with icon and title */}
-                        <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-200">
-                            {getServiceIcon(selectedItem.name, 24)}
-                            <div>
-                                <h3 className="font-semibold text-sm capitalize">{selectedItem.name}</h3>
-                                <p className="text-xs text-gray-500">{getServiceDomain(selectedItem.name)}</p>
+                        <div className="flex items-center gap-3 p-5 pb-4 border-b border-gray-200">
+                            {selectedItem && getServiceIcon(selectedItem.name, 28)}
+                            <div className="flex-1">
+                                <h3 className="font-semibold text-lg capitalize">
+                                    {selectedItem?.name}
+                                </h3>
+                                <p className="text-sm text-white">
+                                    {selectedItem && getServiceDomain(selectedItem.name)}
+                                </p>
                             </div>
+                            {/* Close button */}
+                            <button
+                                onClick={() => setModalOpen(false)}
+                                className="text-white hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
 
                         {/* Menu items */}
-                        <div className="space-y-1">
+                        <div className="p-2">
                             <button 
-                                onClick={() => downloadSingleItemPDF(selectedItem)}
-                                className="w-full text-left px-2 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2 text-sm text-gray-700"
+                                onClick={() => selectedItem && downloadSingleItemPDF(selectedItem)}
+                                className="w-full text-left px-4 py-3 cursor-pointer rounded-lg flex items-center gap-3 text-white transition-colors"
                             >
-                                <FileText size={16} className="text-gray-500" />
-                                Download PDF
+                                <FileText size={18} className="text-white" />
+                                <span>Download PDF</span>
                             </button>
                             <button
-                                onClick={() => removeFromHistory(selectedItem)}
-                                className="w-full text-left px-2 py-2 hover:bg-gray-100 rounded-md flex items-center gap-2 text-sm text-red-600"
+                                onClick={() => selectedItem && removeFromHistory(selectedItem)}
+                                className="w-full text-left px-4 py-3 cursor-pointer rounded-lg flex items-center gap-3 text-red-600 transition-colors"
                             >
-                                <X size={16} />
-                                Remove from history
+                                <X size={18} />
+                                <span>Remove from history</span>
                             </button>
                         </div>
                     </div>
