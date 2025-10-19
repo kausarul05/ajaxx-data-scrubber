@@ -153,8 +153,11 @@ export default function Support() {
       {/* Contact Section - Responsive */}
       <div className="lg:section-gap md:section-gap section-gap px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6 border border-[#007ED6] rounded-xl p-4 sm:p-5 md:p-6 lg:p-7 bg-[#092B41] max-w-7xl mx-auto">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-center sm:text-left">Can not find what you need?</h2>
-          <button 
+          <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-center sm:text-left">
+            Can&apos;t not find what you need?
+          </h2>
+
+          <button
             onClick={() => setIsModalOpen(true)}
             className="bg-[#007ED6] py-3 px-5 sm:py-3 sm:px-5 md:py-4 md:px-6.5 rounded-lg font-bold drop-shadow-2xl drop-shadow-[#007ACF14] cursor-pointer w-full sm:w-auto text-sm sm:text-base"
           >
@@ -180,7 +183,7 @@ export default function Support() {
           >
             <div className="flex justify-between items-center mb-4 sm:mb-5 md:mb-6">
               <h3 className="text-xl font-bold"></h3>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
