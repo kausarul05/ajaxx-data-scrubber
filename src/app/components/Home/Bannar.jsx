@@ -61,7 +61,7 @@ export default function Banner() {
                         variants={itemVariants}
                         className="text-4xl sm:text-5xl md:text-6xl lg:text-[64px] xl:text-[72px] font-semibold text-white md:leading-20"
                     >
-                        Take back control of your personal data
+                        Take control of your digital footprint.
                     </motion.h2>
 
                     <motion.div variants={itemVariants}>

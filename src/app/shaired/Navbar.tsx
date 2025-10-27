@@ -34,6 +34,10 @@ function Navbar() {
             route: "Support"
         },
         {
+            link: "/products",
+            route: "Products"
+        },
+        {
             link: "/dashboard",
             route: "Dashboard"
         }
