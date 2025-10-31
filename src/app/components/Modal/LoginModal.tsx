@@ -91,7 +91,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                 
                 // Store token and user data
                 if (data.access) {
-                    localStorage.setItem("authToken", data.token);
+                    localStorage.setItem("authToken", data.access);
                 }
                 
                 if (data.user) {

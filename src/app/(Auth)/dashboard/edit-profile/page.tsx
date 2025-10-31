@@ -1,14 +1,108 @@
 'use client'
 
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import profile from "@/../public/images/profile.jpg"
 import Image from 'next/image'
 import { Pencil } from 'lucide-react'
+import { apiRequest } from '@/app/lib/api'
+
+interface User {
+    id: number;
+    Fullname: string;
+    email: string;
+    date_joined: string;
+}
+
+interface ProfileData {
+    id: number;
+    user: User;
+    profile_picture: string | null;
+    Country: string | null;
+    City: string | null;
+    Province: string | null;
+    Gender: string | null;
+    Bio: string | null;
+}
 
 export default function Profile() {
-
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [preview, setPreview] = useState<string>(profile.src);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState("");
+    const accessToken = localStorage.getItem("authToken");
+    const [formData, setFormData] = useState({
+        Fullname: "",
+        email: "",
+        Country: "",
+        City: "",
+        Province: "",
+        Gender: "",
+        Bio: ""
+    });
+
+    // Available options for dropdowns
+    const [availableOptions, setAvailableOptions] = useState({
+        countries: ["USA", "Canada", "India"],
+        cities: ["New York", "Los Angeles", "Chicago"],
+        provinces: ["California", "Ontario", "Maharashtra"],
+        genders: ["Male", "Female", "Other"]
+    });
+
+    // Fetch profile data on component mount
+    useEffect(() => {
+        fetchProfileData();
+    }, []);
+
+    const fetchProfileData = async () => {
+        try {
+            setLoading(true);
+            const data: ProfileData = await apiRequest("GET", "/accounts/profile/", null, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+
+            console.log("API Response:", data); // Debug log
+
+            // Update available options with values from API
+            setAvailableOptions(prev => ({
+                countries: [...new Set([...prev.countries, data.Country || ""])].filter(Boolean),
+                cities: [...new Set([...prev.cities, data.City || ""])].filter(Boolean),
+                provinces: [...new Set([...prev.provinces, data.Province || ""])].filter(Boolean),
+                genders: [...new Set([...prev.genders, data.Gender || ""])].filter(Boolean)
+            }));
+
+            // Set form data with API response
+            setFormData({
+                Fullname: data.user.Fullname || "",
+                email: data.user.email || "",
+                Country: data.Country || "",
+                City: data.City || "",
+                Province: data.Province || "",
+                Gender: data.Gender || "",
+                Bio: data.Bio || ""
+            });
+
+            console.log("Form Data Set:", { // Debug log
+                Fullname: data.user.Fullname || "",
+                Country: data.Country || "",
+                City: data.City || "",
+                Province: data.Province || "",
+                Gender: data.Gender || "",
+                Bio: data.Bio || ""
+            });
+
+            // Set profile picture if available
+            if (data.profile_picture) {
+                setPreview(data.profile_picture);
+            }
+        } catch (error: any) {
+            setMessage(error.message || "Failed to load profile data.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Open file selector
     const handleEditClick = () => {
@@ -23,8 +117,59 @@ export default function Profile() {
         if (file) {
             const imageUrl = URL.createObjectURL(file);
             setPreview(imageUrl);
+            // Here you would typically upload the image to the server
         }
     };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [id]: value
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        setSaving(true);
+        setMessage("");
+        try {
+            await apiRequest("PATCH", "/accounts/profile/update/", {
+                Fullname: formData.Fullname,
+                Country: formData.Country,
+                City: formData.City,
+                Province: formData.Province,
+                Gender: formData.Gender,
+                Bio: formData.Bio
+            }, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+
+            setMessage("Profile updated successfully!");
+
+            // Refresh profile data to get latest from server
+            await fetchProfileData();
+        } catch (error: any) {
+            setMessage(error.message || "Failed to update profile.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="bg-[#0A2131] flex items-center justify-center p-4 sm:p-6 lg:p-8 min-h-screen">
+                <div className="bg-[#0D314B] text-white rounded-lg p-4 sm:p-6 lg:p-8 w-full max-w-2xl">
+                    <div className="flex justify-center items-center h-40">
+                        <div className="w-8 h-8 border-4 border-t-[#007ED6] border-[#0A2131] rounded-full animate-spin" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-[#0A2131] flex items-center justify-center p-4 sm:p-6 lg:p-8">
@@ -32,7 +177,14 @@ export default function Profile() {
                 {/* Header */}
                 <h2 className="text-white text-lg font-medium mb-4 sm:mb-6">Profile Information</h2>
                 <div className="border-b border-[#007ED6] mb-4 sm:mb-6"></div>
-                
+
+                {/* Message Display */}
+                {message && (
+                    <div className={`mb-4 p-3 rounded-lg text-sm ${message.includes("successfully") ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
+                        {message}
+                    </div>
+                )}
+
                 {/* Profile Image */}
                 <div className="flex mb-4 sm:mb-6">
                     <div className="relative">
@@ -63,14 +215,16 @@ export default function Profile() {
                     </div>
                 </div>
 
-                <form>
+                <form onSubmit={handleSubmit}>
                     <div className="space-y-4 sm:space-y-6">
                         <div>
-                            <label className="block text-sm font-semibold" htmlFor="displayName">Display Name</label>
+                            <label className="block text-sm font-semibold" htmlFor="Fullname">Display Name</label>
                             <input
                                 type="text"
-                                id="displayName"
+                                id="Fullname"
                                 placeholder="Enter Your Display Name"
+                                value={formData.Fullname}
+                                onChange={handleInputChange}
                                 className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
                             />
                         </div>
@@ -81,71 +235,101 @@ export default function Profile() {
                                 type="email"
                                 id="email"
                                 placeholder="demo@gmail.com"
-                                className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
+                                value={formData.email}
+                                onChange={handleInputChange}
+                                disabled
+                                className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             />
+                            <small className="text-gray-400 text-xs">Email cannot be changed</small>
                         </div>
 
                         <div className='flex flex-col sm:flex-row justify-between gap-4 sm:gap-6'>
                             <div className='w-full'>
-                                <label className="block text-sm font-semibold" htmlFor="country">Country</label>
+                                <label className="block text-sm font-semibold" htmlFor="Country">Country</label>
                                 <select
-                                    id="country"
+                                    id="Country"
+                                    value={formData.Country}
+                                    onChange={handleInputChange}
                                     className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
                                 >
-                                    <option>Select Your Country</option>
-                                    <option>USA</option>
-                                    <option>Canada</option>
-                                    <option>India</option>
+                                    <option value="">Select Your Country</option>
+                                    {availableOptions.countries.map(country => (
+                                        <option key={country} value={country}>{country}</option>
+                                    ))}
+                                    {/* Add custom option if value doesn't exist in list */}
+                                    {formData.Country && !availableOptions.countries.includes(formData.Country) && (
+                                        <option value={formData.Country}>{formData.Country}</option>
+                                    )}
                                 </select>
                             </div>
 
                             <div className='w-full'>
-                                <label className="block text-sm font-semibold" htmlFor="city">City</label>
+                                <label className="block text-sm font-semibold" htmlFor="City">City</label>
                                 <select
-                                    id="city"
+                                    id="City"
+                                    value={formData.City}
+                                    onChange={handleInputChange}
                                     className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
                                 >
-                                    <option>Select Your City</option>
-                                    <option>New York</option>
-                                    <option>Los Angeles</option>
-                                    <option>Chicago</option>
+                                    <option value="">Select Your City</option>
+                                    {availableOptions.cities.map(city => (
+                                        <option key={city} value={city}>{city}</option>
+                                    ))}
+                                    {/* Add custom option if value doesn't exist in list */}
+                                    {formData.City && !availableOptions.cities.includes(formData.City) && (
+                                        <option value={formData.City}>{formData.City}</option>
+                                    )}
                                 </select>
                             </div>
                         </div>
 
                         <div className='flex flex-col sm:flex-row justify-between gap-4 sm:gap-6'>
                             <div className='w-full'>
-                                <label className="block text-sm font-semibold" htmlFor="province">Province</label>
+                                <label className="block text-sm font-semibold" htmlFor="Province">Province</label>
                                 <select
-                                    id="province"
+                                    id="Province"
+                                    value={formData.Province}
+                                    onChange={handleInputChange}
                                     className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
                                 >
-                                    <option>Select Your Province</option>
-                                    <option>California</option>
-                                    <option>Ontario</option>
-                                    <option>Maharashtra</option>
+                                    <option value="">Select Your Province</option>
+                                    {availableOptions.provinces.map(province => (
+                                        <option key={province} value={province}>{province}</option>
+                                    ))}
+                                    {/* Add custom option if value doesn't exist in list */}
+                                    {formData.Province && !availableOptions.provinces.includes(formData.Province) && (
+                                        <option value={formData.Province}>{formData.Province}</option>
+                                    )}
                                 </select>
                             </div>
 
                             <div className='w-full'>
-                                <label className="block text-sm font-semibold" htmlFor="gender">Gender</label>
+                                <label className="block text-sm font-semibold" htmlFor="Gender">Gender</label>
                                 <select
-                                    id="gender"
+                                    id="Gender"
+                                    value={formData.Gender}
+                                    onChange={handleInputChange}
                                     className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
                                 >
-                                    <option>Select Your Gender</option>
-                                    <option>Male</option>
-                                    <option>Female</option>
-                                    <option>Other</option>
+                                    <option value="">Select Your Gender</option>
+                                    {availableOptions.genders.map(gender => (
+                                        <option key={gender} value={gender}>{gender}</option>
+                                    ))}
+                                    {/* Add custom option if value doesn't exist in list */}
+                                    {formData.Gender && !availableOptions.genders.includes(formData.Gender) && (
+                                        <option value={formData.Gender}>{formData.Gender}</option>
+                                    )}
                                 </select>
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold" htmlFor="bio">Bio</label>
+                            <label className="block text-sm font-semibold" htmlFor="Bio">Bio</label>
                             <textarea
-                                id="bio"
+                                id="Bio"
                                 placeholder="Enter Your Bio"
+                                value={formData.Bio}
+                                onChange={handleInputChange}
                                 className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
                             ></textarea>
                         </div>
@@ -153,9 +337,10 @@ export default function Profile() {
                         <div className="mt-6 sm:mt-8">
                             <button
                                 type="submit"
-                                className="py-3 sm:py-4 px-8 sm:px-14 bg-[#007ED6] text-white font-semibold text-sm rounded-lg hover:bg-[#007ED6] transition duration-300 cursor-pointer w-full sm:w-auto"
+                                disabled={saving}
+                                className="py-3 sm:py-4 px-8 sm:px-14 bg-[#007ED6] text-white font-semibold text-sm rounded-lg hover:bg-[#0066b3] disabled:bg-gray-600 disabled:cursor-not-allowed transition duration-300 cursor-pointer w-full sm:w-auto"
                             >
-                                Save
+                                {saving ? "Saving..." : "Save"}
                             </button>
                         </div>
                     </div>
