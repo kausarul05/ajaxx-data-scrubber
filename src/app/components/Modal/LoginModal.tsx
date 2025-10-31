@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { apiRequest } from "@/app/lib/api"; // Update the import path
+import { useRouter } from "next/navigation";
 
 type Props = {
     onClose: () => void;
@@ -32,6 +33,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+    const router = useRouter()
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
@@ -79,16 +81,16 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
             console.log("Sending login request:", payload);
 
             // Call your API using the common apiRequest function
-            const data = await apiRequest("POST", "accounts/login/", payload);
+            const data = await apiRequest("POST", "/accounts/login/", payload);
 
             console.log("Login response:", data);
 
             // Handle successful login
-            if (data.token || data.success) {
+            if (data.access || data.user) {
                 console.log("Login successful", data);
                 
                 // Store token and user data
-                if (data.token) {
+                if (data.access) {
                     localStorage.setItem("authToken", data.token);
                 }
                 
@@ -100,6 +102,9 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                 if (formData.rememberMe) {
                     localStorage.setItem("rememberMe", "true");
                 }
+
+                // redirect to dashboard 
+                router.push('/dashboard')
                 
                 // Close modal on successful login
                 onClose();
@@ -111,17 +116,11 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                 setError(data.message || "Login failed. Please check your credentials.");
             }
         } catch (err: any) {
-            console.error("Login error:", err);
+            console.log("Login error:", err?.error);
             // Handle specific error messages from your API
-            if (err.detail) {
-                setError(err.detail);
-            } else if (err.message) {
-                setError(err.message);
-            } else if (err.non_field_errors) {
-                setError(err.non_field_errors[0]);
-            } else {
-                setError("Login failed. Please try again.");
-            }
+            if (err) {
+                setError(err?.error);
+            } 
         } finally {
             setIsLoading(false);
         }
