@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Base API URL
-const BASE_API = "https://ajaxx-privacy-web-backend.onrender.com";
+const BASE_API = "http://10.10.10.46:8000";
 
 // Axios instance
 const api = axios.create({

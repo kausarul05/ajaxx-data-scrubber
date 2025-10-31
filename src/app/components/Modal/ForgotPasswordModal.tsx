@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { apiRequest } from "@/app/lib/api";
 
 type Props = {
   onClose: () => void;
@@ -17,7 +18,12 @@ export default function ForgotPasswordModal({ onClose }: Props) {
   const [verificationCode, setVerificationCode] = useState(["", "", "", ""]);
   const [countdown, setCountdown] = useState(59);
   const [canResend, setCanResend] = useState(false);
-   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -38,31 +44,107 @@ export default function ForgotPasswordModal({ onClose }: Props) {
     if (currentStep === "success") {
       const timer = setTimeout(() => {
         onClose();
-        router.push("/dashboard"); // <-- Redirect to dashboard
-      }, 1000); // 3 seconds
+        router.push("/dashboard");
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [currentStep, router, onClose]);
 
-  const handleEmailSubmit = () => {
-    setCurrentStep("verification");
-    setCountdown(59);
-    setCanResend(false);
-  };
+  const handleEmailSubmit = async () => {
+    if (!email.trim()) {
+      setMessage("Please enter your email.");
+      return;
+    }
 
-  const handleVerificationSubmit = () => {
-    setCurrentStep("newPassword");
-  };
+    setLoading(true);
+    setMessage("");
+    try {
+      // First call forgot password
+      // await apiRequest("POST", "/auth/forgot-password/", { email });
+      
+      // Then automatically call resend OTP
+      await apiRequest("POST", "/accounts/resend_otp/", { email });
 
-  const handleNewPasswordSubmit = () => {
-    setCurrentStep("success");
-  };
-
-  const handleResendCode = () => {
-    if (canResend) {
+      setCurrentStep("verification");
       setCountdown(59);
       setCanResend(false);
-      // Add resend logic here
+    } catch (error: any) {
+      setMessage(error.message || "Failed to send verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerificationSubmit = async () => {
+    const code = verificationCode.join("");
+    if (code.length !== 4) {
+      setMessage("Please enter the complete verification code.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+    try {
+      // Verify OTP with the correct endpoint and payload
+      await apiRequest("POST", "/accounts/verify_otp/", {
+        email: email,
+        otp: code
+      });
+      setCurrentStep("newPassword");
+    } catch (error: any) {
+      setMessage(error.message || "Invalid verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNewPasswordSubmit = async () => {
+    if (!newPassword || !confirmPassword) {
+      setMessage("Please enter both password fields.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setMessage("Passwords do not match.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setMessage("Password must be at least 6 characters long.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+    try {
+      await apiRequest("POST", "/accounts/forgot-password/", {
+        email,
+        password: newPassword,
+        confirm_password: confirmPassword
+      });
+      setMessage("Password reset successfully!");
+      setCurrentStep("success");
+    } catch (error: any) {
+      setMessage(error.message || "Failed to reset password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (canResend) {
+      setLoading(true);
+      setMessage("");
+      try {
+        await apiRequest("POST", "/auth/resend-otp/", { email });
+        setCountdown(59);
+        setCanResend(false);
+        setMessage("Verification code sent successfully!");
+      } catch (error: any) {
+        setMessage(error.message || "Failed to resend code.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -111,12 +193,10 @@ export default function ForgotPasswordModal({ onClose }: Props) {
       case "newPassword":
         return "Your password must be different from previous used password.";
       case "success":
-      // return "Your password has been changed successfully.";
       default:
         return "";
     }
   };
-
 
   return (
     <div className="h-screen fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -137,7 +217,10 @@ export default function ForgotPasswordModal({ onClose }: Props) {
           {/* Back Button for steps after email */}
           {currentStep !== "email" && currentStep !== "success" && (
             <button
-              onClick={() => setCurrentStep("email")}
+              onClick={() => {
+                setCurrentStep("email");
+                setMessage("");
+              }}
               className="flex items-center gap-2 text-[#0ABF9D] mb-4 cursor-pointer hover:text-[#08a386] transition-colors"
             >
               <ArrowLeft size={16} />
@@ -153,6 +236,13 @@ export default function ForgotPasswordModal({ onClose }: Props) {
             {getStepDescription()}
           </p>
 
+          {/* Error/Success Message */}
+          {message && (
+            <div className={`mb-4 p-3 rounded-lg text-sm ${message.includes("successfully") ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
+              {message}
+            </div>
+          )}
+
           {/* Step 1: Email Input */}
           {currentStep === "email" && (
             <div className="space-y-6">
@@ -165,6 +255,8 @@ export default function ForgotPasswordModal({ onClose }: Props) {
                   <input
                     type="email"
                     placeholder="Enter your Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -173,19 +265,11 @@ export default function ForgotPasswordModal({ onClose }: Props) {
 
               <button
                 onClick={handleEmailSubmit}
-                className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] transition-colors"
+                disabled={loading}
+                className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
               >
-                Continue
+                {loading ? "Sending..." : "Continue"}
               </button>
-
-              {/* <div className="text-center">
-                <button
-                  onClick={onSwitchToLogin}
-                  className="text-[#0ABF9D] font-medium cursor-pointer hover:text-[#08a386] transition-colors"
-                >
-                  Back to Login
-                </button>
-              </div> */}
             </div>
           )}
 
@@ -193,9 +277,6 @@ export default function ForgotPasswordModal({ onClose }: Props) {
           {currentStep === "verification" && (
             <div className="space-y-6">
               <div>
-                {/* <label className="block text-sm font-semibold text-white mb-4">
-                  Enter verification code
-                </label> */}
                 <div className="flex gap-3 justify-center">
                   {verificationCode.map((digit, index) => (
                     <input
@@ -217,8 +298,8 @@ export default function ForgotPasswordModal({ onClose }: Props) {
                   Didn&apos;t receive the code?{" "}
                   <button
                     onClick={handleResendCode}
-                    disabled={!canResend}
-                    className={`font-medium cursor-pointer ${canResend
+                    disabled={!canResend || loading}
+                    className={`font-medium cursor-pointer ${canResend && !loading
                       ? "text-[#0ABF9D] hover:text-[#08a386]"
                       : "text-gray-500 cursor-not-allowed"
                       } transition-colors`}
@@ -230,10 +311,10 @@ export default function ForgotPasswordModal({ onClose }: Props) {
 
               <button
                 onClick={handleVerificationSubmit}
-                disabled={verificationCode.some(digit => digit === "")}
+                disabled={verificationCode.some(digit => digit === "") || loading}
                 className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
               >
-                Continue
+                {loading ? "Verifying..." : "Continue"}
               </button>
             </div>
           )}
@@ -250,6 +331,8 @@ export default function ForgotPasswordModal({ onClose }: Props) {
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
                     className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
@@ -271,6 +354,8 @@ export default function ForgotPasswordModal({ onClose }: Props) {
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
@@ -285,31 +370,15 @@ export default function ForgotPasswordModal({ onClose }: Props) {
 
               <button
                 onClick={handleNewPasswordSubmit}
-                className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] transition-colors"
+                disabled={loading}
+                className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
               >
-                Continue
+                {loading ? "Resetting..." : "Continue"}
               </button>
             </div>
           )}
 
           {/* Step 4: Success */}
-          {/* {currentStep === "success" && (
-            <div className="space-y-6 text-center">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              
-              <button
-                onClick={onSwitchToLogin}
-                className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] transition-colors"
-              >
-                Back to Login
-              </button>
-            </div>
-          )} */}
-
           {currentStep === "success" && (
             <div className="flex flex-col items-center justify-center text-center space-y-6 py-8">
               {/* Blue outlined check icon */}
@@ -347,7 +416,6 @@ export default function ForgotPasswordModal({ onClose }: Props) {
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>
