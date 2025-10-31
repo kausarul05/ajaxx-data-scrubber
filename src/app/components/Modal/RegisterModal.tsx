@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { X, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { apiRequest } from "@/app/lib/api";
 
 type Props = {
     onClose: () => void;
     onSwitchToLogin: () => void;
 };
+
 
 export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
     const [step, setStep] = useState<number>(1);
@@ -16,6 +18,11 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
     const [verificationCode, setVerificationCode] = useState(["", "", "", ""]);
     const [countdown, setCountdown] = useState(59);
     const [canResend, setCanResend] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
     const router = useRouter();
 
     useEffect(() => {
@@ -23,18 +30,70 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
         return () => { document.body.style.overflow = ""; };
     }, []);
 
+    // Countdown timer for resend code
+    useEffect(() => {
+        if (step === 2 && countdown > 0) {
+            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+            return () => clearTimeout(timer);
+        } else if (countdown === 0) {
+            setCanResend(true);
+        }
+    }, [step, countdown]);
+
     useEffect(() => {
         if (step === 3) {
             const timer = setTimeout(() => {
                 onClose();
-                router.push("/dashboard"); // <-- Redirect to dashboard
-            }, 1000); // 3 seconds
+                router.push("/dashboard");
+            }, 1000);
             return () => clearTimeout(timer);
         }
     }, [step, router, onClose]);
 
-    const handleRegister = () => {
-        setStep(2);
+    const handleRegister = async () => {
+        if (!email.trim()) {
+            setMessage("Please enter your email.");
+            return;
+        }
+
+        if (!password || !confirmPassword) {
+            setMessage("Please enter both password fields.");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setMessage("Passwords do not match.");
+            return;
+        }
+
+        if (password.length < 8) {
+            setMessage("Password must be at least 8 characters long.");
+            return;
+        }
+
+        setLoading(true);
+        setMessage("");
+        try {
+            // Register API call
+            await apiRequest("POST", "/accounts/register/", {
+                email: email,
+                password: password,
+                confirm_password: confirmPassword
+            });
+
+            // After successful registration, automatically resend OTP
+            await apiRequest("POST", "/accounts/resend_otp/", {
+                email: email
+            });
+
+            setStep(2);
+            setCountdown(59);
+            setCanResend(false);
+        } catch (error: any) {
+            setMessage(error.message || "Failed to register. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleVerificationCodeChange = (value: string, index: number) => {
@@ -51,11 +110,20 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
         }
     };
 
-    const handleResendCode = () => {
+    const handleResendCode = async () => {
         if (canResend) {
-            setCountdown(59);
-            setCanResend(false);
-            // Add resend logic here
+            setLoading(true);
+            setMessage("");
+            try {
+                await apiRequest("POST", "/accounts/resend_otp/", { email });
+                setCountdown(59);
+                setCanResend(false);
+                setMessage("Verification code sent successfully!");
+            } catch (error: any) {
+                setMessage(error.message || "Failed to resend code.");
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -66,13 +134,28 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
         }
     };
 
-    const handleVerificationSubmit = () => {
-        setStep(3)
-    };
+    const handleVerificationSubmit = async () => {
+        const code = verificationCode.join("");
+        if (code.length !== 4) {
+            setMessage("Please enter the complete verification code.");
+            return;
+        }
 
-    // const handleSuccess = () => {
-    //     onClose();
-    // };
+        setLoading(true);
+        setMessage("");
+        try {
+            // Verify OTP
+            await apiRequest("POST", "/accounts/verify_otp/", {
+                email: email,
+                otp: code
+            });
+            setStep(3);
+        } catch (error: any) {
+            setMessage(error.message || "Invalid verification code.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="h-screen fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -87,6 +170,13 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                 </button>
 
                 <div className="md:p-8 p-4">
+                    {/* Error/Success Message */}
+                    {message && (
+                        <div className={`mb-4 p-3 rounded-lg text-sm ${message.includes("successfully") ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
+                            {message}
+                        </div>
+                    )}
+
                     {step === 1 && (
                         <div>
                             <h2 className="text-2xl font-bold text-white mb-2">Register</h2>
@@ -100,6 +190,8 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                                         <input
                                             type="email"
                                             placeholder="Enter your Email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
                                             className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                     </div>
@@ -112,6 +204,8 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                                         <input
                                             type={showPassword ? "text" : "password"}
                                             placeholder="Enter your password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
                                             className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                         <button
@@ -134,6 +228,8 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                                         <input
                                             type={showConfirmPassword ? "text" : "password"}
                                             placeholder="Confirm Password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
                                             className="w-full p-3 pl-10 bg-[#0D314B] border border-[#007ED6] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                         <button
@@ -148,9 +244,10 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
 
                                 <button
                                     onClick={handleRegister}
-                                    className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer  transition-colors"
+                                    disabled={loading}
+                                    className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    Register
+                                    {loading ? "Registering..." : "Register"}
                                 </button>
 
                                 <button className="w-full bg-[#0D314B] border border-[#007ED6] text-white py-3 rounded-lg font-semibold drop-shadow-2xl transition-colors flex items-center justify-center gap-2 cursor-pointer">
@@ -206,8 +303,8 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                                     Didn&apos;t receive the code?{" "}
                                     <button
                                         onClick={handleResendCode}
-                                        disabled={!canResend}
-                                        className={`font-medium cursor-pointer ${canResend
+                                        disabled={!canResend || loading}
+                                        className={`font-medium cursor-pointer ${canResend && !loading
                                             ? "text-[#0ABF9D] hover:text-[#08a386]"
                                             : "text-gray-500 cursor-not-allowed"
                                             } transition-colors`}
@@ -219,10 +316,10 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
 
                             <button
                                 onClick={handleVerificationSubmit}
-                                disabled={verificationCode.some(digit => digit === "")}
+                                disabled={verificationCode.some(digit => digit === "") || loading}
                                 className="w-full bg-[#007ED6] text-white py-3 rounded-lg font-bold cursor-pointer hover:bg-[#0066b3] disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
                             >
-                                Continue
+                                {loading ? "Verifying..." : "Continue"}
                             </button>
                         </div>
                     )}
@@ -255,7 +352,7 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
 
                             {/* Description */}
                             <p className="text-[#E5E5E5] text-sm">
-                                Your password has been changed successfully.
+                                Your account has been created successfully.
                             </p>
 
                             {/* Loading spinner */}

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/app/lib/api";
+import { toast } from "react-toastify";
 
 type Props = {
   onClose: () => void;
@@ -122,7 +123,7 @@ export default function ForgotPasswordModal({ onClose }: Props) {
         password: newPassword,
         confirm_password: confirmPassword
       });
-      setMessage("Password reset successfully!");
+      toast.success("Password reset successfully!");
       setCurrentStep("success");
     } catch (error: any) {
       setMessage(error.message || "Failed to reset password.");

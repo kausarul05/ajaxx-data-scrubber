@@ -6,11 +6,21 @@ import { useRef, useState } from "react";
 import { useInView } from "framer-motion";
 import { FileText, Search, ShieldCheck, X } from "lucide-react";
 import supportBannar from "@/../public/images/support.png"
+import { apiRequest } from "../lib/api";
+import { toast } from "react-toastify";
+
 
 export default function Support() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    Subject: "",
+    Description: ""
+  });
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -23,75 +33,61 @@ export default function Support() {
     }
   };
 
-  // const itemVariants = {
-  //   hidden: { opacity: 0, y: 30 },
-  //   visible: {
-  //     opacity: 1,
-  //     y: 0,
-  //     transition: {
-  //       duration: 0.6,
-  //       ease: "easeOut"
-  //     }
-  //   }
-  // };
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
-  // const cardVariants = {
-  //   hidden: { opacity: 0, y: 40, scale: 0.95 },
-  //   visible: {
-  //     opacity: 1,
-  //     y: 0,
-  //     scale: 1,
-  //     transition: {
-  //       duration: 0.7,
-  //       ease: "easeOut"
-  //     }
-  //   },
-  //   hover: {
-  //     scale: 1.05,
-  //     transition: {
-  //       duration: 0.3,
-  //       ease: "easeInOut"
-  //     }
-  //   }
-  // };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.email.trim()) {
+      setMessage("Please enter your email address.");
+      return;
+    }
 
-  // const modalVariants = {
-  //   hidden: { opacity: 0, scale: 0.8 },
-  //   visible: { 
-  //     opacity: 1, 
-  //     scale: 1,
-  //     transition: {
-  //       duration: 0.3,
-  //       ease: [0.42, 0, 0.58, 1] // cubic-bezier for easeOut
-  //     }
-  //   },
-  //   exit: {
-  //     opacity: 0,
-  //     scale: 0.8,
-  //     transition: {
-  //       duration: 0.2,
-  //       ease: [0.42, 0, 1, 1] // cubic-bezier for easeIn
-  //     }
-  //   }
-  // };
+    if (!formData.Subject.trim()) {
+      setMessage("Please enter a subject.");
+      return;
+    }
 
-  // const overlayVariants = {
-  //   hidden: { opacity: 0 },
-  //   visible: { 
-  //     opacity: 1,
-  //     transition: {
-  //       duration: 0.3,
-  //       ease: "easeOut"
-  //     }
-  //   },
-  //   exit: {
-  //     opacity: 0,
-  //     transition: {
-  //       duration: 0.2,
-  //       ease: "easeIn"
-  //     }
-  //   }
-  // };
+    if (!formData.Description.trim()) {
+      setMessage("Please enter a description.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+    try {
+      await apiRequest("POST", "/service/ContactUs/", {
+        email: formData.email,
+        Subject: formData.Subject,
+        Description: formData.Description
+      });
+
+      toast.success("Message sent successfully!");
+      setFormData({ email: "", Subject: "", Description: "" });
+      
+      // Close modal after successful submission
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setMessage("");
+      }, 2000);
+    } catch (error: any) {
+      setMessage(error.message || "Failed to send message. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData({ email: "", Subject: "", Description: "" });
+    setMessage("");
+  };
 
   return (
     <section className="bg-custom text-white">
@@ -117,7 +113,6 @@ export default function Support() {
           <div className=''>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 lg:gap-12 max-w-7xl mx-auto">
               <motion.div
-                // variants={cardVariants}
                 whileHover="hover"
                 className="border border-[#007ED6] p-4 sm:p-5 md:p-6 rounded-xl cursor-pointer"
               >
@@ -127,7 +122,6 @@ export default function Support() {
               </motion.div>
 
               <motion.div
-                // variants={cardVariants}
                 whileHover="hover"
                 className="border border-[#007ED6] p-4 sm:p-5 md:p-6 rounded-xl cursor-pointer"
               >
@@ -137,7 +131,6 @@ export default function Support() {
               </motion.div>
 
               <motion.div
-                // variants={cardVariants}
                 whileHover="hover"
                 className="border border-[#007ED6] p-4 sm:p-5 md:p-6 rounded-xl cursor-pointer"
               >
@@ -172,31 +165,39 @@ export default function Support() {
           initial="hidden"
           animate="visible"
           exit="exit"
-          // variants={overlayVariants}
           className="fixed inset-0 bg-transparent backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 drop-shadow-xl drop-shadow-[#0ABF9D66]"
-          onClick={() => setIsModalOpen(false)}
+          onClick={closeModal}
         >
           <motion.div
-            // variants={modalVariants}
             className="bg-[#0A2A3D] border border-[#007ED6] rounded-xl w-full max-w-[90vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl py-6 sm:py-8 md:py-12 lg:py-[72px] px-4 sm:px-6 md:px-8 lg:px-12 mx-2 sm:mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4 sm:mb-5 md:mb-6">
-              <h3 className="text-xl font-bold"></h3>
+              <h3 className="text-xl font-bold">Contact Us</h3>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={closeModal}
                 className="text-gray-400 hover:text-white transition-colors cursor-pointer"
               >
                 <X size={24} className="sm:w-6 sm:h-6 md:w-8 md:h-8" />
               </button>
             </div>
 
-            <form className="space-y-4">
+            {/* Message Display */}
+            {message && (
+              <div className={`mb-4 p-3 rounded-lg text-sm ${message.includes("successfully") ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
+                {message}
+              </div>
+            )}
+
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="mb-4 sm:mb-5">
                 <label className="block text-sm font-semibold mb-2">Your email address</label>
                 <input
                   type="email"
+                  name="email"
                   placeholder="Enter your Email"
+                  value={formData.email}
+                  onChange={handleInputChange}
                   className="w-full bg-[#0D314B] border border-[#007ED6] rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#007ED6] text-sm sm:text-base"
                 />
                 <small className="text-[#B0B0B0] font-medium text-xs sm:text-sm">Make sure to double-check your email before submitting the form</small>
@@ -206,7 +207,10 @@ export default function Support() {
                 <label className="block text-sm font-semibold mb-2">Subject</label>
                 <input
                   type="text"
+                  name="Subject"
                   placeholder="Enter your Subject"
+                  value={formData.Subject}
+                  onChange={handleInputChange}
                   className="w-full bg-[#0D314B] border border-[#007ED6] rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#007ED6] text-sm sm:text-base"
                 />
               </div>
@@ -214,8 +218,11 @@ export default function Support() {
               <div className="mb-4 sm:mb-5">
                 <label className="block text-sm font-semibold mb-2">Description</label>
                 <textarea
+                  name="Description"
                   placeholder="Enter your description..."
                   rows={3}
+                  value={formData.Description}
+                  onChange={handleInputChange}
                   className="w-full bg-[#0D314B] border border-[#007ED6] rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#007ED6] text-sm sm:text-base resize-none"
                 />
                 <small className="text-[#B0B0B0] font-medium text-xs sm:text-sm">Please enter the details of your request. A member of our support staff will respond as soon as possible</small>
@@ -224,9 +231,10 @@ export default function Support() {
               <div className="flex gap-3 mt-6 sm:mt-7 md:mt-8">
                 <button
                   type="submit"
-                  className="flex-1 bg-[#007ED6] text-white py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold hover:bg-[#0066B3] transition-colors text-sm sm:text-base"
+                  disabled={loading}
+                  className="flex-1 bg-[#007ED6] text-white py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold hover:bg-[#0066B3] disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
                 >
-                  Submit
+                  {loading ? "Submitting..." : "Submit"}
                 </button>
               </div>
             </form>
