@@ -8,7 +8,7 @@ import { apiRequest } from '@/app/lib/api'
 
 interface User {
     id: number;
-    Fullname: string;
+    fullname: string;
     email: string;
     date_joined: string;
 }
@@ -32,7 +32,7 @@ export default function Profile() {
     const [message, setMessage] = useState("");
     const accessToken = localStorage.getItem("authToken");
     const [formData, setFormData] = useState({
-        Fullname: "",
+        fullname: "",
         email: "",
         Country: "",
         City: "",
@@ -75,7 +75,7 @@ export default function Profile() {
 
             // Set form data with API response
             setFormData({
-                Fullname: data.user.Fullname || "",
+                fullname: data.user.fullname || "",
                 email: data.user.email || "",
                 Country: data.Country || "",
                 City: data.City || "",
@@ -84,14 +84,14 @@ export default function Profile() {
                 Bio: data.Bio || ""
             });
 
-            console.log("Form Data Set:", { // Debug log
-                Fullname: data.user.Fullname || "",
-                Country: data.Country || "",
-                City: data.City || "",
-                Province: data.Province || "",
-                Gender: data.Gender || "",
-                Bio: data.Bio || ""
-            });
+            // console.log("Form Data Set:", { // Debug log
+            //     fullname: data.user.fullname || "",
+            //     Country: data.Country || "",
+            //     City: data.City || "",
+            //     Province: data.Province || "",
+            //     Gender: data.Gender || "",
+            //     Bio: data.Bio || ""
+            // });
 
             // Set profile picture if available
             if (data.profile_picture) {
@@ -136,7 +136,7 @@ export default function Profile() {
         setMessage("");
         try {
             await apiRequest("PATCH", "/accounts/profile/update/", {
-                Fullname: formData.Fullname,
+                fullname: formData.fullname,
                 Country: formData.Country,
                 City: formData.City,
                 Province: formData.Province,
@@ -218,12 +218,12 @@ export default function Profile() {
                 <form onSubmit={handleSubmit}>
                     <div className="space-y-4 sm:space-y-6">
                         <div>
-                            <label className="block text-sm font-semibold" htmlFor="Fullname">Display Name</label>
+                            <label className="block text-sm font-semibold" htmlFor="fullname">Display Name</label>
                             <input
                                 type="text"
-                                id="Fullname"
+                                id="fullname"
                                 placeholder="Enter Your Display Name"
-                                value={formData.Fullname}
+                                value={formData.fullname}
                                 onChange={handleInputChange}
                                 className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
                             />

@@ -108,7 +108,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                 
                 // Close modal on successful login
                 onClose();
-                
+        
                 // Optional: Refresh page or redirect user
                 // window.location.reload();
                 
