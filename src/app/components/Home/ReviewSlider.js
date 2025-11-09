@@ -15,12 +15,13 @@ export default function ReviewSlider() {
   const [loading, setLoading] = useState(true);
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
-  const assessToken = localStorage.getItem('authToken');
+  // const assessToken = localStorage.getItem('authToken');
 
   useEffect(() => {
     const fetchReviews = async () => {
       try {
         setLoading(true);
+        const assessToken = localStorage.getItem('authToken');
         const data = await apiRequest("GET", "/service/review/?page=1&page_size=5", null, {
           headers : {
             Authorization : `Bearer ${assessToken}`

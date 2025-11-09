@@ -13,12 +13,32 @@ function Navbar() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
-
-    // const [activeModal, setActiveModal] = useState<"login" | "register" | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [activeModal, setActiveModal] = useState<"login" | "register" | "forgotPassword" | null>(null);
 
-
     const pathname = usePathname();
+
+    // Check authentication status
+    useEffect(() => {
+        const checkAuthStatus = () => {
+            const token = localStorage.getItem('authToken');
+            setIsAuthenticated(!!token);
+        };
+
+        // Check initially
+        checkAuthStatus();
+
+        // Listen for storage changes (in case token is set/removed in other tabs)
+        window.addEventListener('storage', checkAuthStatus);
+        
+        // Check on route changes
+        const interval = setInterval(checkAuthStatus, 1000);
+
+        return () => {
+            window.removeEventListener('storage', checkAuthStatus);
+            clearInterval(interval);
+        };
+    }, []);
 
     const menuItems = [
         {
@@ -37,10 +57,10 @@ function Navbar() {
             link: "/products",
             route: "Products"
         },
-        {
+        ...(isAuthenticated ? [{
             link: "/dashboard",
             route: "Dashboard"
-        }
+        }] : [])
     ];
 
     // Handle scroll effect
@@ -56,6 +76,14 @@ function Navbar() {
     const handleMenuItemClick = (index: number): void => {
         setActiveIndex(index);
         setIsMenuOpen(false);
+    };
+
+    // Handle logout
+    const handleLogout = () => {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        setIsAuthenticated(false);
+        window.location.reload(); // Refresh to update the UI
     };
 
     return (
@@ -92,22 +120,45 @@ function Navbar() {
                     ))}
                 </ul>
 
-
-
-                {/* Desktop Auth Buttons */}
+                {/* Desktop Auth Buttons / Avatar */}
                 <ul className="hidden lg:flex gap-6 items-center font-medium text-sm">
-                    <li
-                        onClick={() => setActiveModal("login")}
-                        className="hover:text-blue-300 cursor-pointer border border-[#007ED6] py-2 px-6 rounded-lg transition-all duration-300 hover:bg-[#007ED6]/10 hover:border-[#007ED6]/80 hover:scale-105"
-                    >
-                        Sign In
-                    </li>
-                    <li
-                        onClick={() => setActiveModal("register")}
-                        className="bg-[#007ED6] px-6 py-2 rounded hover:bg-[#007ED6]/90 cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#007ED6]/40"
-                    >
-                        Sign Up
-                    </li>
+                    {isAuthenticated ? (
+                        <>
+                            {/* User Avatar/Dropdown */}
+                            <li className="relative group">
+                                <div className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-[#007ED6]/20 transition-all duration-300">
+                                    <div className="w-8 h-8 bg-[#007ED6] rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                                        U
+                                    </div>
+                                    <span className="text-white">User</span>
+                                </div>
+                                {/* Dropdown Menu */}
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-[#0A3740] border border-[#007ED6] rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full text-left px-4 py-3 text-white hover:bg-[#007ED6] transition-colors duration-200 rounded-lg"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </li>
+                        </>
+                    ) : (
+                        <>
+                            <li
+                                onClick={() => setActiveModal("login")}
+                                className="hover:text-blue-300 cursor-pointer border border-[#007ED6] py-2 px-6 rounded-lg transition-all duration-300 hover:bg-[#007ED6]/10 hover:border-[#007ED6]/80 hover:scale-105"
+                            >
+                                Sign In
+                            </li>
+                            <li
+                                onClick={() => setActiveModal("register")}
+                                className="bg-[#007ED6] px-6 py-2 rounded hover:bg-[#007ED6]/90 cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#007ED6]/40"
+                            >
+                                Sign Up
+                            </li>
+                        </>
+                    )}
                 </ul>
 
                 {/* Mobile Menu Button */}
@@ -156,14 +207,45 @@ function Navbar() {
                                 </Link>
                             ))}
 
-                            {/* Mobile Auth Buttons */}
+                            {/* Mobile Auth Buttons / Avatar */}
                             <div className="flex flex-col gap-6 mt-8 w-64">
-                                <button className="hover:text-blue-300 cursor-pointer border-2 border-[#007ED6] py-4 px-8 rounded-xl text-lg font-semibold transition-all duration-300 hover:bg-[#007ED6]/10 hover:border-[#007ED6]/80 hover:scale-105">
-                                    Sign In
-                                </button>
-                                <button className="bg-[#007ED6] px-8 py-4 rounded-xl hover:bg-[#007ED6]/90 cursor-pointer text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#007ED6]/40">
-                                    Sign Up
-                                </button>
+                                {isAuthenticated ? (
+                                    <>
+                                        <div className="flex items-center gap-3 justify-center p-4 border border-[#007ED6] rounded-xl">
+                                            <div className="w-10 h-10 bg-[#007ED6] rounded-full flex items-center justify-center text-white font-semibold text-lg">
+                                                U
+                                            </div>
+                                            <span className="text-white text-lg">User</span>
+                                        </div>
+                                        <button 
+                                            onClick={handleLogout}
+                                            className="bg-red-600 px-8 py-4 rounded-xl hover:bg-red-700 cursor-pointer text-lg font-semibold transition-all duration-300 transform hover:scale-105"
+                                        >
+                                            Logout
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button 
+                                            onClick={() => {
+                                                setActiveModal("login");
+                                                setIsMenuOpen(false);
+                                            }} 
+                                            className="hover:text-blue-300 cursor-pointer border-2 border-[#007ED6] py-4 px-8 rounded-xl text-lg font-semibold transition-all duration-300 hover:bg-[#007ED6]/10 hover:border-[#007ED6]/80 hover:scale-105"
+                                        >
+                                            Sign In
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                setActiveModal("register");
+                                                setIsMenuOpen(false);
+                                            }} 
+                                            className="bg-[#007ED6] px-8 py-4 rounded-xl hover:bg-[#007ED6]/90 cursor-pointer text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#007ED6]/40"
+                                        >
+                                            Sign Up
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
                             {/* Close Button */}
@@ -177,21 +259,8 @@ function Navbar() {
                         </div>
                     </div>
                 </div>
-                {/* Modals */}
-                {/* {activeModal === "login" && (
-                    <LoginModal
-                        onClose={() => setActiveModal(null)}
-                        onSwitchToRegister={() => setActiveModal("register")}
-                        setActiveModal={setActiveModal}
-                    />
-                )}
 
-                {activeModal === "register" && (
-                    <RegisterModal
-                        onClose={() => setActiveModal(null)}
-                        onSwitchToLogin={() => setActiveModal("login")}
-                    />
-                )} */}
+                {/* Modals */}
                 {activeModal === "login" && (
                     <LoginModal
                         onClose={() => setActiveModal(null)}

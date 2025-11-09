@@ -3,94 +3,105 @@
 import { CircleCheck, CircleX } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
-import { useRef } from 'react';
-
-const pricingPlans = [
-    {
-        name: "Basic",
-        duration: "month",
-        des: "All features included to keep your personal data safe.",
-        price: "$9.99",
-        features: [
-            { text: "Free 7-day trial", available: true },
-            { text: "10 scans per month", available: true },
-            { text: "Support 24-7", available: true },
-            { text: "Removal of data from brokers databases", available: false },
-            { text: "Ongoing auto monitoring of user's personal info", available: false },
-            { text: "Export of results from scans", available: false },
-            { text: "Showing deleted users' data from brokers websites", available: false },
-            { text: "Enhanced tools to safeguard against scams, fraud, unwanted data exposure", available: false },
-            { text: "Expanded monitoring features", available: false },
-            { text: "Unlimited scans & monitoring", available: false },
-            { text: "All Gold package features", available: false },
-            { text: "Full yearly coverage", available: false },
-        ],
-    },
-    {
-        name: "Silver",
-        duration: "month",
-        des: "Removal of data from data brokers databases and ongoing auto monitoring of your personal information.",
-        price: "$14.99",
-        features: [
-            { text: "Free 7-day trial", available: true },
-            { text: "10 scans per month", available: true },
-            { text: "Support 24-7", available: false },
-            { text: "Removal of data from brokers databases", available: true },
-            { text: "Ongoing auto monitoring of user's personal info", available: true },
-            { text: "Export of results from scans", available: true },
-            { text: "Showing deleted users' data from brokers websites", available: true },
-            { text: "Enhanced tools to safeguard against scams, fraud, unwanted data exposure", available: false },
-            { text: "Expanded monitoring features", available: false },
-            { text: "Unlimited scans & monitoring", available: false },
-            { text: "All Gold package features", available: false },
-            { text: "Full yearly coverage", available: false },
-        ],
-    },
-    {
-        name: "Gold",
-        duration: "month",
-        des: "Gain enhanced tools to safeguard against scams, fraud, and unwanted data exposure.",
-        price: "$29.99",
-        features: [
-            { text: "Free 7-day trial", available: true },
-            { text: "10 scans per month", available: true },
-            { text: "Support 24-7", available: true },
-            { text: "Removal of data from brokers databases", available: true },
-            { text: "Ongoing auto monitoring of user's personal info", available: true },
-            { text: "Export of results from scans", available: true },
-            { text: "Showing deleted users' data from brokers websites", available: true },
-            { text: "Enhanced tools to safeguard against scams, fraud, unwanted data exposure", available: true },
-            { text: "Expanded monitoring features", available: true },
-            { text: "Unlimited scans & monitoring", available: true },
-            { text: "All Gold package features", available: true },
-            { text: "Full yearly coverage", available: false },
-        ],
-    },
-    {
-        name: "Annual Plan",
-        duration: "year",
-        des: "Unlock all the same benefits as the Gold package.",
-        price: "$99",
-        features: [
-            { text: "Free 7-day trial", available: true },
-            { text: "10 scans per month", available: true },
-            { text: "Support 24-7", available: true },
-            { text: "Removal of data from brokers databases", available: true },
-            { text: "Ongoing auto monitoring of user's personal info", available: true },
-            { text: "Export of results from scans", available: true },
-            { text: "Showing deleted users' data from brokers websites", available: true },
-            { text: "Enhanced tools to safeguard against scams, fraud, unwanted data exposure", available: true },
-            { text: "Expanded monitoring features", available: true },
-            { text: "Unlimited scans & monitoring", available: true },
-            { text: "All Gold package features", available: true },
-            { text: "Full yearly coverage", available: true },
-        ],
-    },
-];
+import { useRef, useEffect, useState } from 'react';
+import { apiRequest } from '@/app/lib/api';
 
 export default function Pricing() {
+    const [subscriptions, setSubscriptions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [processing, setProcessing] = useState(null);
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-50px" });
+
+    useEffect(() => {
+        const fetchSubscriptions = async () => {
+            try {
+                setLoading(true);
+                const response = await apiRequest("GET", "/payment/subscriptions");
+                console.log("API Response:", response); // Debug log
+
+                if (response.data) {
+                    setSubscriptions(response.data);
+                } else {
+                    console.error("Unexpected API response structure:", response);
+                    setSubscriptions([]);
+                }
+            } catch (error) {
+                console.error('Failed to fetch subscriptions:', error);
+                setSubscriptions([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSubscriptions();
+    }, []);
+
+    // Handle Buy Now click
+    const handleBuyNow = async (subscriptionId, planName) => {
+        try {
+            setProcessing(planName);
+            
+            const response = await apiRequest(
+                "POST", 
+                "/payment/payments/create-checkout-session/", 
+                {
+                    subscription_id: subscriptionId
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("authToken")}`
+                    }
+                }
+            );
+
+            console.log("Checkout Session Response:", response); // Debug log
+
+            if (response.data) {
+                // Redirect to Stripe checkout
+                window.location.href = response.data.checkout_url;
+            } else {
+                console.error("Invalid checkout response:", response);
+                alert("Failed to create checkout session. Please try again.");
+            }
+        } catch (error) {
+            console.error("Checkout error:", error);
+            alert("Error processing payment. Please try again.");
+        } finally {
+            setProcessing(null);
+        }
+    };
+
+    // Map API data to your pricing plan structure
+    const getPricingPlans = () => {
+        if (!subscriptions || subscriptions.length === 0) {
+            // Return empty array if no data from API - don't show any plans
+            return [];
+        }
+
+        // Map API data to your existing structure
+        return subscriptions.slice(0, 4).map((subscription, index) => {
+            const planNames = ["Basic", "Silver", "Gold", "Annual Plan"];
+
+            // Use actual features from API
+            const apiFeatures = subscription.features || [];
+            const features = apiFeatures.map(feature => ({
+                text: feature.description,
+                available: true // All features from API are available
+            }));
+
+            return {
+                id: subscription.id, // Include subscription ID for checkout
+                name: planNames[index] || subscription.title,
+                duration: subscription.billing_cycle === "monthly" ? "month" : "year",
+                des: subscription.Description || "Premium protection plan",
+                price: `$${subscription.price}`,
+                features: features
+            };
+        });
+    };
+
+    const pricingPlans = getPricingPlans();
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -104,8 +115,8 @@ export default function Pricing() {
     };
 
     const cardVariants = {
-        hidden: { 
-            opacity: 0, 
+        hidden: {
+            opacity: 0,
             y: 60,
             scale: 0.9,
             rotateY: -15
@@ -140,8 +151,8 @@ export default function Pricing() {
     };
 
     const featureVariants = {
-        hidden: { 
-            opacity: 0, 
+        hidden: {
+            opacity: 0,
             x: -30,
             scale: 0.8
         },
@@ -158,8 +169,8 @@ export default function Pricing() {
     };
 
     const buttonVariants = {
-        hidden: { 
-            opacity: 0, 
+        hidden: {
+            opacity: 0,
             y: 20,
             scale: 0.8
         },
@@ -190,25 +201,10 @@ export default function Pricing() {
         }
     };
 
-    const titleVariants = {
-        hidden: { 
-            opacity: 0, 
-            y: 20 
-        },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0.6,
-                ease: "easeOut"
-            }
-        }
-    };
-
     const priceVariants = {
-        hidden: { 
-            opacity: 0, 
-            scale: 0.5 
+        hidden: {
+            opacity: 0,
+            scale: 0.5
         },
         visible: {
             opacity: 1,
@@ -221,120 +217,146 @@ export default function Pricing() {
         }
     };
 
+    if (loading) {
+        return (
+            <section
+                ref={ref}
+                className="bg-custom section-gap md:section-gap-sm text-white"
+            >
+                <div className='w-full mx-auto px-4 sm:px-6 lg:px-0'>
+                    <div className='mb-10 md:mb-14 text-center'>
+                        <h3 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-3">
+                            Transparent <span className='text-[#007ED6]'>Pricing</span> Plans
+                        </h3>
+                        <p className='text-sm sm:text-base text-gray-300'>
+                            Choose a plan that fits your privacy needs, no hidden fees
+                        </p>
+                    </div>
+                    <div className="flex justify-center items-center">
+                        <p>Loading pricing plans...</p>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
     return (
-        <motion.section 
+        <section
             ref={ref}
-            initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
-            variants={containerVariants}
             className="bg-custom section-gap md:section-gap-sm text-white"
         >
             <div className='w-full mx-auto px-4 sm:px-6 lg:px-0'>
-                <motion.div 
-                    variants={titleVariants}
-                    className='mb-10 md:mb-14 text-center'
-                >
+                {/* Fixed: Remove motion from header to ensure it always shows */}
+                <div className='mb-10 md:mb-14 text-center'>
                     <h3 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-3">
                         Transparent <span className='text-[#007ED6]'>Pricing</span> Plans
                     </h3>
                     <p className='text-sm sm:text-base text-gray-300'>
                         Choose a plan that fits your privacy needs, no hidden fees
                     </p>
-                </motion.div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8 text-white">
-                    {pricingPlans.map((plan, index) => (
-                        <motion.div
-                            key={plan.name}
-                            variants={cardVariants}
-                            whileHover="hover"
-                            whileTap="tap"
-                            custom={index}
-                            className="border border-[#007ED6] p-6 sm:p-8 rounded-xl cursor-pointer bg-[#092B41] relative overflow-hidden"
-                        >
-                            {/* Animated background effect */}
-                            <motion.div 
-                                className="absolute inset-0 bg-gradient-to-br from-[#007ED6] to-transparent opacity-0"
-                                whileHover={{ opacity: 0.1 }}
-                                transition={{ duration: 0.3 }}
-                            />
-                            
-                            {/* Title */}
-                            <motion.div 
-                                variants={titleVariants}
-                                className='flex gap-2 items-baseline mb-3 flex-wrap relative z-10'
-                            >
-                                <h4
-                                    className={`font-semibold text-xl sm:text-2xl ${plan.name === "Silver" || plan.name === "Gold" || plan.name === "Annual Plan"
-                                        ? "text-[#007ED6]"
-                                        : "text-white"
-                                        }`}
-                                >
-                                    {plan.name}
-                                </h4>
-                                <h4 className={`font-semibold text-xl sm:text-2xl ${plan.name === "Annual Plan" ? 'text-[#007ED6]' : 'text-white'}`}>
-                                    Protection
-                                </h4>
-                            </motion.div>
+                </div>
 
-                            {/* Description */}
-                            <motion.p 
-                                variants={titleVariants}
-                                className="text-xs sm:text-sm mb-4 sm:mb-6 text-gray-300 relative z-10"
-                            >
-                                {plan.des}
-                            </motion.p>
-
-                            {/* Price */}
-                            <motion.p 
-                                variants={priceVariants}
-                                className="text-sm font-bold mb-4 sm:mb-6 relative z-10"
-                            >
-                                <span className="text-2xl sm:text-3xl text-[#007ED6]">{plan.price}</span> /{plan.duration}
-                            </motion.p>
-
-                            {/* Features */}
-                            <ul className="text-left mb-6 sm:mb-8 space-y-3 sm:space-y-4 relative z-10">
-                                {plan.features.map((feature, i) => (
-                                    <motion.li
-                                        key={i}
-                                        custom={i}
-                                        variants={featureVariants}
-                                        initial="hidden"
-                                        animate={isInView ? "visible" : "hidden"}
-                                        className={`flex items-center gap-3 text-xs sm:text-sm ${feature.available ? "text-white" : "text-[#B0B0B0]"
-                                            }`}
-                                    >
-                                        <motion.div
-                                            whileHover={{ scale: 1.2 }}
-                                            transition={{ duration: 0.2 }}
-                                        >
-                                            {feature.available ? (
-                                                <CircleCheck size={14} className="text-[#007ED6] flex-shrink-0" />
-                                            ) : (
-                                                <CircleX size={14} className="text-[#EB4335] flex-shrink-0" />
-                                            )}
-                                        </motion.div>
-                                        <span>{feature.text}</span>
-                                    </motion.li>
-                                ))}
-                            </ul>
-
-                            {/* Button */}
-                            <motion.button 
-                                variants={buttonVariants}
-                                initial="hidden"
-                                animate={isInView ? "visible" : "hidden"}
+                {pricingPlans.length === 0 ? (
+                    <div className="text-center py-12">
+                        <p className="text-gray-300">No pricing plans available at the moment.</p>
+                    </div>
+                ) : (
+                    <motion.div
+                        initial="hidden"
+                        animate={isInView ? "visible" : "hidden"}
+                        variants={containerVariants}
+                        className="grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8 text-white"
+                    >
+                        {pricingPlans.map((plan, index) => (
+                            <motion.div
+                                key={plan.name + index}
+                                variants={cardVariants}
                                 whileHover="hover"
                                 whileTap="tap"
-                                className="w-full bg-[#007ED6] px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-bold text-xs sm:text-sm relative z-10"
+                                custom={index}
+                                className="border border-[#007ED6] p-6 sm:p-8 rounded-xl cursor-pointer bg-[#092B41] relative overflow-hidden"
                             >
-                                Purchase Now
-                            </motion.button>
-                        </motion.div>
-                    ))}
-                </div>
+                                {/* Animated background effect */}
+                                <motion.div
+                                    className="absolute inset-0 bg-gradient-to-br from-[#007ED6] to-transparent opacity-0"
+                                    whileHover={{ opacity: 0.1 }}
+                                    transition={{ duration: 0.3 }}
+                                />
+
+                                {/* Title */}
+                                <div className='flex gap-2 items-baseline mb-3 flex-wrap relative z-10'>
+                                    <h4
+                                        className={`font-semibold text-xl sm:text-2xl ${plan.name === "Silver" || plan.name === "Gold" || plan.name === "Annual Plan"
+                                            ? "text-[#007ED6]"
+                                            : "text-white"
+                                            }`}
+                                    >
+                                        {plan.name}
+                                    </h4>
+                                    <h4 className={`font-semibold text-xl sm:text-2xl ${plan.name === "Annual Plan" ? 'text-[#007ED6]' : 'text-white'}`}>
+                                        Protection
+                                    </h4>
+                                </div>
+
+                                {/* Description */}
+                                <p className="text-xs sm:text-sm mb-4 sm:mb-6 text-gray-300 relative z-10">
+                                    {plan.des}
+                                </p>
+
+                                {/* Price */}
+                                <motion.p
+                                    variants={priceVariants}
+                                    initial="hidden"
+                                    animate={isInView ? "visible" : "hidden"}
+                                    className="text-sm font-bold mb-4 sm:mb-6 relative z-10"
+                                >
+                                    <span className="text-2xl sm:text-3xl text-[#007ED6]">{plan.price}</span> /{plan.duration}
+                                </motion.p>
+
+                                {/* Features */}
+                                <ul className="text-left mb-6 sm:mb-8 space-y-3 sm:space-y-4 relative z-10 min-h-52">
+                                    {plan.features.map((feature, i) => (
+                                        <motion.li
+                                            key={i}
+                                            custom={i}
+                                            variants={featureVariants}
+                                            initial="hidden"
+                                            animate={isInView ? "visible" : "hidden"}
+                                            className="flex items-center gap-3 text-xs sm:text-sm text-white"
+                                        >
+                                            <motion.div
+                                                whileHover={{ scale: 1.2 }}
+                                                transition={{ duration: 0.2 }}
+                                            >
+                                                <CircleCheck size={14} className="text-[#007ED6] flex-shrink-0" />
+                                            </motion.div>
+                                            <span>{feature.text}</span>
+                                        </motion.li>
+                                    ))}
+                                </ul>
+
+                                {/* Button */}
+                                <motion.button
+                                    variants={buttonVariants}
+                                    initial="hidden"
+                                    animate={isInView ? "visible" : "hidden"}
+                                    whileHover="hover"
+                                    whileTap="tap"
+                                    onClick={() => handleBuyNow(plan.id, plan.name)}
+                                    disabled={processing === plan.name}
+                                    className={`w-full px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-bold text-xs sm:text-sm relative z-10 transition-all duration-300 ${
+                                        processing === plan.name 
+                                            ? 'bg-gray-600 cursor-not-allowed' 
+                                            : 'bg-[#007ED6] hover:bg-[#0068b3]'
+                                    }`}
+                                >
+                                    {processing === plan.name ? 'Processing...' : 'BUY NOW'}
+                                </motion.button>
+                            </motion.div>
+                        ))}
+                    </motion.div>
+                )}
             </div>
-        </motion.section>
+        </section>
     )
 }
