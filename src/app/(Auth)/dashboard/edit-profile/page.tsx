@@ -46,7 +46,7 @@ export default function Profile() {
         countries: ["USA", "Canada", "India"],
         cities: ["New York", "Los Angeles", "Chicago"],
         provinces: ["California", "Ontario", "Maharashtra"],
-        genders: ["Male", "Female", "Other"]
+        genders: ["male", "female", "Other"]
     });
 
     // Fetch profile data on component mount
@@ -234,7 +234,7 @@ export default function Profile() {
                             <input
                                 type="email"
                                 id="email"
-                                placeholder="demo@gmail.com"
+                                // placeholder="demo@gmail.com"
                                 value={formData.email}
                                 onChange={handleInputChange}
                                 disabled
