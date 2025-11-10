@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
 import { useRef, useEffect, useState } from 'react';
 import { apiRequest } from '@/app/lib/api';
+import { toast } from 'react-toastify';
 
 export default function Pricing() {
     const [subscriptions, setSubscriptions] = useState([]);
@@ -39,14 +40,21 @@ export default function Pricing() {
 
     // Handle Buy Now click
     const handleBuyNow = async (subscriptionId, planName) => {
+
+        if(!localStorage.getItem("authToken")){
+            toast.error("Please log in to proceed with the purchase.");
+            return;
+        }
+        
         try {
             setProcessing(planName);
-            
+            console.log("localStorage", localStorage.getItem("authToken"))
             const response = await apiRequest(
                 "POST", 
                 "/payment/payments/create-checkout-session/", 
                 {
-                    subscription_id: subscriptionId
+                    subscription_id: subscriptionId,
+                    token : localStorage.getItem("authToken")
                 },
                 {
                     headers: {
@@ -59,7 +67,8 @@ export default function Pricing() {
 
             if (response.data) {
                 // Redirect to Stripe checkout
-                window.location.href = response.data.checkout_url;
+                // window.location.href = response.data.checkout_url;
+                window.open(response.data.checkout_url, "_blank");
             } else {
                 console.error("Invalid checkout response:", response);
                 alert("Failed to create checkout session. Please try again.");
