@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Eye,
     Trash2,
@@ -11,6 +11,7 @@ import {
     Music2,
     Linkedin
 } from "lucide-react";
+import { toast } from "react-toastify";
 
 type ServiceData = {
     fullName: string;
@@ -27,11 +28,61 @@ type Service = {
     data: ServiceData;
 };
 
+type PlanData = {
+    id: number;
+    title: string;
+    Description: string;
+    price: string;
+    billing_cycle: string;
+    features: Array<{
+        id: number;
+        description: string;
+    }>;
+};
+
+type SubscriptionData = {
+    plan: PlanData;
+    starts_at: string;
+    expires_at: string;
+    status: string;
+    plan_uuid: string;
+};
+
+type ApiResponse = {
+    success: boolean;
+    message: string;
+    data: SubscriptionData;
+};
+
 export default function Page() {
     const [clicked, setClicked] = useState(false);
     const [scanning, setScanning] = useState(false);
     const [showServices, setShowServices] = useState(false);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
+    const [showFormModal, setShowFormModal] = useState(false);
+    const [formData, setFormData] = useState({
+        email: "",
+        first_name: "",
+        last_name: "",
+        middle_name: "",
+        city: "",
+        country: "",
+        state: "",
+        birthday_day: "",
+        birthday_month: "",
+        birthday_year: "",
+        plan: "",
+        postpone_scan: "",
+        group_tag: "",
+        address_line1: "",
+        address_line2: "",
+        zipcode: ""
+    });
+    const [formSubmitted, setFormSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [planLoading, setPlanLoading] = useState(true);
+    const [currentPlan, setCurrentPlan] = useState<SubscriptionData | null>(null);
+
     const [services, setServices] = useState<Service[]>([
         {
             id: 1,
@@ -95,6 +146,44 @@ export default function Page() {
         },
     ]);
 
+    // Fetch current subscription plan on component mount
+    useEffect(() => {
+        const fetchCurrentPlan = async () => {
+            try {
+                setPlanLoading(true);
+                const response = await fetch("http://10.10.10.46:8000/payment/payments/current-subscription/", {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        // Add authentication headers if needed
+                        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data: ApiResponse = await response.json();
+                
+                if (data.success && data.data) {
+                    setCurrentPlan(data.data);
+                    setFormData(prev => ({
+                        ...prev,
+                        plan: data.data.plan_uuid
+                    }));
+                }
+            } catch (error) {
+                console.error("Error fetching current plan:", error);
+                alert("Failed to load current subscription plan.");
+            } finally {
+                setPlanLoading(false);
+            }
+        };
+
+        fetchCurrentPlan();
+    }, []);
+
     // Function to get the icon component based on service name
     const getServiceIcon = (serviceName: string, size: number = 20) => {
         switch (serviceName.toLowerCase()) {
@@ -116,17 +205,94 @@ export default function Page() {
     };
 
     const handleClick = () => {
+        if (!formSubmitted) {
+            setShowFormModal(true);
+            return;
+        }
+
+        // --- Scan Start ---
         setClicked(true);
         setScanning(true);
 
-        setTimeout(() => {
-            setClicked(false);
-        }, 800);
+        setTimeout(() => setClicked(false), 800);
 
         setTimeout(() => {
             setScanning(false);
             setShowServices(true);
         }, 2000);
+    };
+
+    const handleSubmitForm = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        // Simple validation
+        if (!formData.email || !formData.first_name) {
+            alert("Please fill required fields!");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            // Prepare payload according to API requirements
+            const payload = {
+                email: formData.email,
+                first_name: formData.first_name,
+                last_name: formData.last_name,
+                middle_name: formData.middle_name,
+                city: formData.city,
+                country: formData.country,
+                state: formData.state,
+                birthday_day: formData.birthday_day ? parseInt(formData.birthday_day) : null,
+                birthday_month: formData.birthday_month ? parseInt(formData.birthday_month) : null,
+                birthday_year: formData.birthday_year ? parseInt(formData.birthday_year) : null,
+                plan: formData.plan, // This should be the plan_uuid from current subscription
+                postpone_scan: formData.postpone_scan ? parseInt(formData.postpone_scan) > 0 : false,
+                group_tag: formData.group_tag,
+                address_line1: formData.address_line1,
+                address_line2: formData.address_line2,
+                zip_code: formData.zipcode
+            };
+
+            const response = await fetch("http://10.10.10.46:8000/data/optery/add-member/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    // Add authentication headers if needed
+                    // "Authorization": "Bearer your-token"
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result) {
+                
+                setFormSubmitted(true);
+                setShowFormModal(false);
+                localStorage.setItem("uuid", result.uuid);
+                toast.success("Member added successfully! You can now start the scan.");
+            } else {
+                toast.error(`Failed to add member: ${result.message || "Unknown error"}`);
+            }
+        } catch (error) {
+            console.error("Error submitting form:", error);
+            toast.error("Failed to submit form. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
     const handleView = (service: Service) => {
@@ -139,6 +305,10 @@ export default function Page() {
 
     const closeModal = () => {
         setSelectedService(null);
+    };
+
+    const closeFormModal = () => {
+        setShowFormModal(false);
     };
 
     return (
@@ -351,6 +521,236 @@ export default function Page() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Form Modal */}
+            {showFormModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-modal-fade-in">
+                    <div className="bg-[#0E2A3F] border border-cyan-400/40 rounded-xl p-6 w-full max-w-7xl max-h-[90vh] overflow-y-auto shadow-2xl animate-modal-slide-up">
+                        
+                        {/* Header with Close Button */}
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-white text-xl font-semibold">User Information Form</h2>
+                            <button 
+                                onClick={closeFormModal}
+                                className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-white/10 rounded-lg"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {/* Form */}
+                        <form onSubmit={handleSubmitForm} className="space-y-4 text-white">
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Email *</label>
+                                <input 
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    placeholder="johndoe@example.com" 
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">First Name *</label>
+                                    <input 
+                                        name="first_name"
+                                        value={formData.first_name}
+                                        onChange={handleInputChange}
+                                        className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">Last Name</label>
+                                    <input 
+                                        name="last_name"
+                                        value={formData.last_name}
+                                        onChange={handleInputChange}
+                                        className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Middle Name</label>
+                                <input 
+                                    name="middle_name"
+                                    value={formData.middle_name}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">City</label>
+                                    <input 
+                                        name="city"
+                                        value={formData.city}
+                                        onChange={handleInputChange}
+                                        className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">Country</label>
+                                    <input 
+                                        name="country"
+                                        value={formData.country}
+                                        onChange={handleInputChange}
+                                        className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">State</label>
+                                <input 
+                                    name="state"
+                                    value={formData.state}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                />
+                            </div>
+
+                            {/* Birthday */}
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Birthday</label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <input 
+                                            type="number" 
+                                            name="birthday_day"
+                                            value={formData.birthday_day}
+                                            onChange={handleInputChange}
+                                            className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                            placeholder="Day"
+                                            min="1"
+                                            max="31"
+                                        />
+                                    </div>
+                                    <div>
+                                        <input 
+                                            type="number" 
+                                            name="birthday_month"
+                                            value={formData.birthday_month}
+                                            onChange={handleInputChange}
+                                            className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                            placeholder="Month"
+                                            min="1"
+                                            max="12"
+                                        />
+                                    </div>
+                                    <div>
+                                        <input 
+                                            type="number" 
+                                            name="birthday_year"
+                                            value={formData.birthday_year}
+                                            onChange={handleInputChange}
+                                            className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                            placeholder="Year"
+                                            min="1900"
+                                            max="2024"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Plan ID</label>
+                                <input 
+                                    name="plan"
+                                    value={formData.plan}
+                                    readOnly
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors cursor-not-allowed opacity-70"
+                                    placeholder={planLoading ? "Loading..." : "No active plan"}
+                                />
+                                {currentPlan && (
+                                    <p className="text-cyan-400 text-xs mt-1">
+                                        Active Plan: {currentPlan.plan.title} (${currentPlan.plan.price}/{currentPlan.plan.billing_cycle})
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Postpone Scan (days)</label>
+                                <input 
+                                    type="number" 
+                                    name="postpone_scan"
+                                    value={formData.postpone_scan}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    placeholder="0 for immediate scan"
+                                    min="0"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Group Tag</label>
+                                <input 
+                                    name="group_tag"
+                                    value={formData.group_tag}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    placeholder="Family-A"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Address Line 1</label>
+                                <input 
+                                    name="address_line1"
+                                    value={formData.address_line1}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Address Line 2</label>
+                                <input 
+                                    name="address_line2"
+                                    value={formData.address_line2}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Zip Code</label>
+                                <input 
+                                    name="zipcode"
+                                    value={formData.zipcode}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                />
+                            </div>
+
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={loading || planLoading}
+                                className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 transform mt-4 ${
+                                    loading || planLoading
+                                        ? "bg-gray-600 cursor-not-allowed"
+                                        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 hover:scale-[1.02]"
+                                }`}
+                            >
+                                {loading ? (
+                                    <span className="flex items-center justify-center">
+                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                        Submitting...
+                                    </span>
+                                ) : (
+                                    "Submit & Start Scan"
+                                )}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

@@ -90,7 +90,7 @@ export default function Pricing() {
 
         // Map API data to your existing structure
         return subscriptions.slice(0, 4).map((subscription, index) => {
-            const planNames = ["Basic", "Silver", "Gold", "Annual Plan"];
+            // const planNames = ["Basic", "Silver", "Gold", "Annual Plan"];
 
             // Use actual features from API
             const apiFeatures = subscription.features || [];
@@ -101,7 +101,7 @@ export default function Pricing() {
 
             return {
                 id: subscription.id, // Include subscription ID for checkout
-                name: planNames[index] || subscription.title,
+                name: subscription.title,
                 duration: subscription.billing_cycle === "monthly" ? "month" : "year",
                 des: subscription.Description || "Premium protection plan",
                 price: `$${subscription.price}`,
