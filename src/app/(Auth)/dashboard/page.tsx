@@ -9,7 +9,9 @@ import {
     ShoppingBag,
     Instagram,
     Music2,
-    Linkedin
+    Linkedin,
+    Download,
+    ExternalLink
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -54,11 +56,55 @@ type ApiResponse = {
     data: SubscriptionData;
 };
 
+// Types based on your API response
+type ScanResponse = {
+    member_uuid: string;
+    scans: Scan[];
+    screenshots: ScreenshotGroup[];
+    message: string;
+};
+
+type Scan = {
+    scan_id: string;
+    status: string;
+    is_primary_scan: boolean;
+    created_at: string;
+    scheduled_for: string | null;
+    report_pdf: string;
+};
+
+type ScreenshotGroup = {
+    scan_id: string;
+    screenshots: Screenshot[];
+};
+
+type Screenshot = {
+    scan_id: string;
+    databroker_uuid: string;
+    databroker_name: string;
+    databroker_data: {
+        has_name_data: boolean;
+        has_relative_data: boolean;
+        has_address_data: boolean;
+        has_email_data: boolean;
+        has_phone_data: boolean;
+        has_company_data: boolean;
+    };
+    image: string;
+    thumbnail: string | null;
+    url: string;
+    removal_status: number;
+    removal_status_description: string;
+    exposure_status: number;
+    exposure_status_description: string;
+    search_type: string;
+};
+
 export default function Page() {
     const [clicked, setClicked] = useState(false);
     const [scanning, setScanning] = useState(false);
     const [showServices, setShowServices] = useState(false);
-    const [selectedService, setSelectedService] = useState<Service | null>(null);
+    const [selectedService, setSelectedService] = useState<Screenshot | null>(null);
     const [showFormModal, setShowFormModal] = useState(false);
     const [formData, setFormData] = useState({
         email: "",
@@ -82,69 +128,8 @@ export default function Page() {
     const [loading, setLoading] = useState(false);
     const [planLoading, setPlanLoading] = useState(true);
     const [currentPlan, setCurrentPlan] = useState<SubscriptionData | null>(null);
-
-    const [services, setServices] = useState<Service[]>([
-        {
-            id: 1,
-            name: "Facebook",
-            icon: "facebook",
-            data: {
-                fullName: "Jane Cooper",
-                email: "abc@example.com",
-                phone: "(319) 555-0115",
-                creationDate: "07/02/24",
-                time: "7pm"
-            }
-        },
-        {
-            id: 2,
-            name: "amazon",
-            icon: "amazon",
-            data: {
-                fullName: "Jane Cooper",
-                email: "abc@example.com",
-                phone: "(319) 555-0115",
-                creationDate: "07/02/24",
-                time: "7pm"
-            }
-        },
-        {
-            id: 3,
-            name: "Instagram",
-            icon: "instagram",
-            data: {
-                fullName: "Jane Cooper",
-                email: "abc@example.com",
-                phone: "(319) 555-0115",
-                creationDate: "07/02/24",
-                time: "7pm"
-            }
-        },
-        {
-            id: 4,
-            name: "TikTok",
-            icon: "tiktok",
-            data: {
-                fullName: "Jane Cooper",
-                email: "abc@example.com",
-                phone: "(319) 555-0115",
-                creationDate: "07/02/24",
-                time: "7pm"
-            }
-        },
-        {
-            id: 5,
-            name: "LinkedIn",
-            icon: "linkedin",
-            data: {
-                fullName: "Jane Cooper",
-                email: "abc@example.com",
-                phone: "(319) 555-0115",
-                creationDate: "07/02/24",
-                time: "7pm"
-            }
-        },
-    ]);
+    const [scanData, setScanData] = useState<ScanResponse | null>(null);
+    const [scanLoading, setScanLoading] = useState(false);
 
     // Fetch current subscription plan on component mount
     useEffect(() => {
@@ -155,7 +140,6 @@ export default function Page() {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
-                        // Add authentication headers if needed
                         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
                     },
                 });
@@ -165,7 +149,7 @@ export default function Page() {
                 }
 
                 const data: ApiResponse = await response.json();
-                
+
                 if (data.success && data.data) {
                     setCurrentPlan(data.data);
                     setFormData(prev => ({
@@ -184,42 +168,133 @@ export default function Page() {
         fetchCurrentPlan();
     }, []);
 
-    // Function to get the icon component based on service name
-    const getServiceIcon = (serviceName: string, size: number = 20) => {
-        switch (serviceName.toLowerCase()) {
-            case 'facebook':
-                return <Facebook size={size} className="text-blue-500" />;
-            case 'amazon':
-                return <ShoppingBag size={size} className="text-orange-500" />;
-            case 'instagram':
-                return <Instagram size={size} className="text-pink-500" />;
-            case 'tiktok':
-                return <Music2 size={size} className="text-black" />;
-            case 'linkedin':
-                return <Linkedin size={size} className="text-blue-600" />;
-            default:
-                return <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded flex items-center justify-center text-white font-bold text-sm">
-                    {serviceName.charAt(0)}
-                </div>;
+    // Function to get the icon component based on databroker name
+    const getServiceIcon = (databrokerName: string, size: number = 20) => {
+        const name = databrokerName.toLowerCase();
+        
+        if (name.includes('facebook') || name.includes('people') || name.includes('search')) {
+            return <Facebook size={size} className="text-blue-500" />;
+        } else if (name.includes('amazon') || name.includes('shopping')) {
+            return <ShoppingBag size={size} className="text-orange-500" />;
+        } else if (name.includes('instagram') || name.includes('social')) {
+            return <Instagram size={size} className="text-pink-500" />;
+        } else if (name.includes('tiktok') || name.includes('music')) {
+            return <Music2 size={size} className="text-black" />;
+        } else if (name.includes('linkedin') || name.includes('professional')) {
+            return <Linkedin size={size} className="text-blue-600" />;
+        } else if (name.includes('google')) {
+            return (
+                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-green-500 rounded flex items-center justify-center text-white font-bold text-xs">
+                    G
+                </div>
+            );
+        } else if (name.includes('bing')) {
+            return (
+                <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-blue-500 rounded flex items-center justify-center text-white font-bold text-xs">
+                    B
+                </div>
+            );
+        } else {
+            return (
+                <div className="w-6 h-6 bg-gradient-to-br from-cyan-500 to-blue-500 rounded flex items-center justify-center text-white font-bold text-xs">
+                    {databrokerName.charAt(0)}
+                </div>
+            );
         }
     };
 
-    const handleClick = () => {
+    // Function to get status badge color
+    const getStatusBadge = (exposureStatus: number, exposureDescription: string) => {
+        if (exposureStatus === 10) {
+            return (
+                <span className="bg-red-500/20 text-red-400 text-xs px-2 py-1 rounded-full border border-red-500/30">
+                    {exposureDescription}
+                </span>
+            );
+        }
+        return (
+            <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full border border-green-500/30">
+                {exposureDescription}
+            </span>
+        );
+    };
+
+    // Function to get data type badges
+    const getDataBadges = (databrokerData: any) => {
+        const badges = [];
+        if (databrokerData.has_name_data) badges.push("Name");
+        if (databrokerData.has_address_data) badges.push("Address");
+        if (databrokerData.has_email_data) badges.push("Email");
+        if (databrokerData.has_phone_data) badges.push("Phone");
+        if (databrokerData.has_relative_data) badges.push("Relatives");
+        if (databrokerData.has_company_data) badges.push("Company");
+
+        return badges.map((badge, index) => (
+            <span 
+                key={index}
+                className="bg-cyan-500/20 text-cyan-400 text-xs px-2 py-1 rounded-full border border-cyan-500/30"
+            >
+                {badge}
+            </span>
+        ));
+    };
+
+    const handleClick = async () => {
         if (!formSubmitted) {
             setShowFormModal(true);
             return;
         }
 
-        // --- Scan Start ---
-        setClicked(true);
-        setScanning(true);
+        // If form is submitted, start the scan process
+        await startDataScan();
+    };
 
-        setTimeout(() => setClicked(false), 800);
+    const startDataScan = async () => {
+        const memberUuid = localStorage.getItem("uuid");
 
-        setTimeout(() => {
+        if (!memberUuid) {
+            toast.error("No member UUID found. Please submit the form first.");
+            return;
+        }
+
+        try {
+            setScanLoading(true);
+            setClicked(true);
+            setScanning(true);
+
+            // Call the data scans API
+            const response = await fetch(`http://10.10.10.46:8000/data/optery/data-scans/?member_uuid=${memberUuid}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const scanResult: ScanResponse = await response.json();
+            setScanData(scanResult);
+
+            // Simulate scanning process
+            setTimeout(() => setClicked(false), 800);
+
+            setTimeout(() => {
+                setScanning(false);
+                setShowServices(true);
+                toast.success("Scan completed successfully!");
+            }, 2000);
+
+        } catch (error) {
+            console.error("Error starting data scan:", error);
+            toast.error("Failed to start scan. Please try again.");
             setScanning(false);
-            setShowServices(true);
-        }, 2000);
+            setClicked(false);
+        } finally {
+            setScanLoading(false);
+        }
     };
 
     const handleSubmitForm = async (e: React.FormEvent) => {
@@ -246,20 +321,19 @@ export default function Page() {
                 birthday_day: formData.birthday_day ? parseInt(formData.birthday_day) : null,
                 birthday_month: formData.birthday_month ? parseInt(formData.birthday_month) : null,
                 birthday_year: formData.birthday_year ? parseInt(formData.birthday_year) : null,
-                plan: formData.plan, // This should be the plan_uuid from current subscription
+                plan: formData.plan,
                 postpone_scan: formData.postpone_scan ? parseInt(formData.postpone_scan) > 0 : false,
-                group_tag: formData.group_tag,
+                group_tag: null,
                 address_line1: formData.address_line1,
                 address_line2: formData.address_line2,
                 zip_code: formData.zipcode
             };
 
-            const response = await fetch("http://10.10.10.46:8000/data/optery/add-member/", {
+            const response = await fetch("http://10.10.10.46:8000/data/optery/members/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    // Add authentication headers if needed
-                    // "Authorization": "Bearer your-token"
+                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
                 },
                 body: JSON.stringify(payload),
             });
@@ -269,12 +343,11 @@ export default function Page() {
             }
 
             const result = await response.json();
-            
+
             if (result) {
-                
                 setFormSubmitted(true);
                 setShowFormModal(false);
-                localStorage.setItem("uuid", result.uuid);
+                localStorage.setItem("uuid", result?.data?.uuid);
                 toast.success("Member added successfully! You can now start the scan.");
             } else {
                 toast.error(`Failed to add member: ${result.message || "Unknown error"}`);
@@ -295,12 +368,13 @@ export default function Page() {
         }));
     };
 
-    const handleView = (service: Service) => {
-        setSelectedService(service);
+    const handleView = (screenshot: Screenshot) => {
+        setSelectedService(screenshot);
     };
 
-    const handleRemove = (serviceId: number) => {
-        setServices(prev => prev.filter(service => service.id !== serviceId));
+    const handleRemove = (databrokerUuid: string) => {
+        // Implement removal logic here
+        toast.info(`Removal request sent for ${databrokerUuid}`);
     };
 
     const closeModal = () => {
@@ -310,6 +384,17 @@ export default function Page() {
     const closeFormModal = () => {
         setShowFormModal(false);
     };
+
+    const downloadReport = () => {
+        if (scanData?.scans[0]?.report_pdf) {
+            window.open(scanData.scans[0].report_pdf, '_blank');
+        } else {
+            toast.error("No report available for download");
+        }
+    };
+
+    // Get all screenshots from the API response
+    const allScreenshots = scanData?.screenshots?.flatMap(group => group.screenshots) || [];
 
     return (
         <div className="min-h-screen bg-[#0A2131] flex p-4 sm:p-6 lg:p-8">
@@ -390,6 +475,19 @@ export default function Page() {
                     </div>
                 </div>
 
+                {/* Download Report Button - Show when scan is complete */}
+                {/* {showServices && scanData?.scans[0]?.report_pdf && (
+                    <div className="flex justify-center mb-6">
+                        <button
+                            onClick={downloadReport}
+                            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105"
+                        >
+                            <Download size={20} />
+                            Download Full Report (PDF)
+                        </button>
+                    </div>
+                )} */}
+
                 {/* Services List - Animated Entry */}
                 {showServices && (
                     <div className="space-y-4 animate-services-appear">
@@ -398,13 +496,13 @@ export default function Page() {
                                 SCAN COMPLETE
                             </h2>
                             <p className="text-gray-400 text-sm mt-2">
-                                Found {services.length} connected services
+                                Found {allScreenshots.length} data broker exposures
                             </p>
                         </div>
 
-                        {services.map((service, index) => (
+                        {allScreenshots.map((screenshot, index) => (
                             <div
-                                key={service.id}
+                                key={screenshot.databroker_uuid}
                                 className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-[#0B2233] border border-[#0F3A52] rounded-lg py-4 px-4 sm:px-6 transform transition-all duration-500 hover:scale-[1.02] hover:border-cyan-500/30"
                                 style={{
                                     animationDelay: `${index * 0.1}s`,
@@ -413,24 +511,32 @@ export default function Page() {
                                     transform: 'translateX(-50px)'
                                 }}
                             >
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 flex-1">
                                     <div className="w-8 h-8 rounded flex items-center justify-center">
-                                        {getServiceIcon(service.name)}
+                                        {getServiceIcon(screenshot.databroker_name)}
                                     </div>
-                                    <span className="text-white font-medium capitalize">
-                                        {service.name}
-                                    </span>
+                                    <div className="flex-1">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                            <span className="text-white font-medium">
+                                                {screenshot.databroker_name}
+                                            </span>
+                                            {getStatusBadge(screenshot.exposure_status, screenshot.exposure_status_description)}
+                                        </div>
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                            {getDataBadges(screenshot.databroker_data)}
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="flex gap-2 sm:gap-3 justify-end">
                                     <button
-                                        onClick={() => handleView(service)}
+                                        onClick={() => handleView(screenshot)}
                                         className="flex items-center gap-2 bg-[#0ABF9D] text-white text-sm px-3 sm:px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
                                     >
                                         <Eye size={16} />
                                         <span className="hidden sm:inline">View</span>
                                     </button>
                                     <button
-                                        onClick={() => handleRemove(service.id)}
+                                        onClick={() => handleRemove(screenshot.databroker_uuid)}
                                         className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm px-3 sm:px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
                                     >
                                         <Trash2 size={16} />
@@ -446,8 +552,13 @@ export default function Page() {
                 {!showServices && !scanning && (
                     <div className="text-center mt-6 lg:mt-8 animate-pulse">
                         <p className="text-cyan-400/70 text-sm font-mono">
-                            CLICK TO SCAN YOUR ACCOUNT
+                            {formSubmitted ? "CLICK TO START SCAN" : "CLICK TO SCAN YOUR ACCOUNT"}
                         </p>
+                        {formSubmitted && (
+                            <p className="text-green-400 text-xs mt-1">
+                                Form submitted successfully! Ready to scan.
+                            </p>
+                        )}
                     </div>
                 )}
 
@@ -456,7 +567,9 @@ export default function Page() {
                     <div className="text-center mt-6 lg:mt-8">
                         <div className="flex justify-center items-center gap-3 mb-2">
                             <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
-                            <p className="text-cyan-400 text-sm font-mono">SCANNING IN PROGRESS...</p>
+                            <p className="text-cyan-400 text-sm font-mono">
+                                {scanLoading ? "INITIATING SCAN..." : "SCANNING IN PROGRESS..."}
+                        </p>
                         </div>
                         <div className="w-48 h-1 bg-gray-700 rounded-full mx-auto overflow-hidden">
                             <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-400 animate-scan-progress"></div>
@@ -465,15 +578,19 @@ export default function Page() {
                 )}
             </div>
 
-            {/* View Modal */}
+            {/* View Modal for Screenshot Details */}
             {selectedService && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 sm:p-6 z-50 animate-modal-fade-in">
-                    <div className="bg-[#0E2A3F] border border-cyan-500/30 rounded-xl p-4 sm:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-modal-slide-up">
+                    <div className="bg-[#0E2A3F] border border-cyan-500/30 rounded-xl p-4 sm:p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-modal-slide-up">
                         {/* Modal Header */}
                         <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-                                    {getServiceIcon(selectedService.name, 32)}
+                                    {getServiceIcon(selectedService.databroker_name, 32)}
+                                </div>
+                                <div>
+                                    <h3 className="text-white text-xl font-semibold">{selectedService.databroker_name}</h3>
+                                    {getStatusBadge(selectedService.exposure_status, selectedService.exposure_status_description)}
                                 </div>
                             </div>
                             <button
@@ -485,39 +602,79 @@ export default function Page() {
                         </div>
 
                         {/* Modal Content */}
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
-                                <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                                    <p className="text-white text-sm">Full name</p>
-                                    <p className="text-white font-medium text-sm sm:text-base">{selectedService.data.fullName}</p>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Screenshot Image */}
+                            <div className="space-y-4">
+                                <h4 className="text-white font-medium">Screenshot</h4>
+                                <div className="border border-[#0F3A52] rounded-lg overflow-hidden">
+                                    <img 
+                                        src={selectedService.image} 
+                                        alt={`${selectedService.databroker_name} screenshot`}
+                                        className="w-full h-auto object-contain"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/600x400/0B2233/0ABF9D?text=Screenshot+Not+Available';
+                                        }}
+                                    />
                                 </div>
+                                <a 
+                                    href={selectedService.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
+                                >
+                                    <ExternalLink size={16} />
+                                    Visit Source Website
+                                </a>
                             </div>
 
-                            <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
-                                <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                                    <p className="text-white text-sm">Email</p>
-                                    <p className="text-white font-medium text-sm sm:text-base">{selectedService.data.email}</p>
+                            {/* Data Details */}
+                            <div className="space-y-4">
+                                <h4 className="text-white font-medium">Exposed Data</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className={`p-3 rounded-lg border ${selectedService.databroker_data.has_name_data ? 'border-red-500/50 bg-red-500/10' : 'border-green-500/50 bg-green-500/10'}`}>
+                                        <p className="text-sm text-gray-400">Name Data</p>
+                                        <p className={`font-medium ${selectedService.databroker_data.has_name_data ? 'text-red-400' : 'text-green-400'}`}>
+                                            {selectedService.databroker_data.has_name_data ? 'Exposed' : 'Safe'}
+                                        </p>
+                                    </div>
+                                    <div className={`p-3 rounded-lg border ${selectedService.databroker_data.has_address_data ? 'border-red-500/50 bg-red-500/10' : 'border-green-500/50 bg-green-500/10'}`}>
+                                        <p className="text-sm text-gray-400">Address Data</p>
+                                        <p className={`font-medium ${selectedService.databroker_data.has_address_data ? 'text-red-400' : 'text-green-400'}`}>
+                                            {selectedService.databroker_data.has_address_data ? 'Exposed' : 'Safe'}
+                                        </p>
+                                    </div>
+                                    <div className={`p-3 rounded-lg border ${selectedService.databroker_data.has_email_data ? 'border-red-500/50 bg-red-500/10' : 'border-green-500/50 bg-green-500/10'}`}>
+                                        <p className="text-sm text-gray-400">Email Data</p>
+                                        <p className={`font-medium ${selectedService.databroker_data.has_email_data ? 'text-red-400' : 'text-green-400'}`}>
+                                            {selectedService.databroker_data.has_email_data ? 'Exposed' : 'Safe'}
+                                        </p>
+                                    </div>
+                                    <div className={`p-3 rounded-lg border ${selectedService.databroker_data.has_phone_data ? 'border-red-500/50 bg-red-500/10' : 'border-green-500/50 bg-green-500/10'}`}>
+                                        <p className="text-sm text-gray-400">Phone Data</p>
+                                        <p className={`font-medium ${selectedService.databroker_data.has_phone_data ? 'text-red-400' : 'text-green-400'}`}>
+                                            {selectedService.databroker_data.has_phone_data ? 'Exposed' : 'Safe'}
+                                        </p>
+                                    </div>
+                                    <div className={`p-3 rounded-lg border ${selectedService.databroker_data.has_relative_data ? 'border-red-500/50 bg-red-500/10' : 'border-green-500/50 bg-green-500/10'}`}>
+                                        <p className="text-sm text-gray-400">Relative Data</p>
+                                        <p className={`font-medium ${selectedService.databroker_data.has_relative_data ? 'text-red-400' : 'text-green-400'}`}>
+                                            {selectedService.databroker_data.has_relative_data ? 'Exposed' : 'Safe'}
+                                        </p>
+                                    </div>
+                                    <div className={`p-3 rounded-lg border ${selectedService.databroker_data.has_company_data ? 'border-red-500/50 bg-red-500/10' : 'border-green-500/50 bg-green-500/10'}`}>
+                                        <p className="text-sm text-gray-400">Company Data</p>
+                                        <p className={`font-medium ${selectedService.databroker_data.has_company_data ? 'text-red-400' : 'text-green-400'}`}>
+                                            {selectedService.databroker_data.has_company_data ? 'Exposed' : 'Safe'}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
-                                <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                                    <p className="text-white text-sm">Phone number</p>
-                                    <p className="text-white font-medium text-sm sm:text-base">{selectedService.data.phone}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
-                                <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                                    <p className="text-white text-sm">Account creation date</p>
-                                    <p className="text-white font-medium text-sm sm:text-base">{selectedService.data.creationDate}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0F3A52]">
-                                <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                                    <p className="text-white text-sm">Time</p>
-                                    <p className="text-white font-medium text-sm sm:text-base">{selectedService.data.time}</p>
+                                {/* Removal Status */}
+                                <div className="p-4 rounded-lg border border-cyan-500/30 bg-cyan-500/10">
+                                    <h5 className="text-cyan-400 font-medium mb-2">Removal Status</h5>
+                                    <p className="text-white text-sm">
+                                        {selectedService.removal_status_description || "Not yet requested"}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -525,15 +682,14 @@ export default function Page() {
                 </div>
             )}
 
-            {/* Form Modal */}
+            {/* Form Modal (keep the existing form modal code as is) */}
             {showFormModal && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-modal-fade-in">
                     <div className="bg-[#0E2A3F] border border-cyan-400/40 rounded-xl p-6 w-full max-w-7xl max-h-[90vh] overflow-y-auto shadow-2xl animate-modal-slide-up">
-                        
                         {/* Header with Close Button */}
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-white text-xl font-semibold">User Information Form</h2>
-                            <button 
+                            <button
                                 onClick={closeFormModal}
                                 className="text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-white/10 rounded-lg"
                             >
@@ -545,12 +701,12 @@ export default function Page() {
                         <form onSubmit={handleSubmitForm} className="space-y-4 text-white">
                             <div>
                                 <label className="block text-sm font-medium mb-2">Email *</label>
-                                <input 
+                                <input
                                     name="email"
                                     value={formData.email}
                                     onChange={handleInputChange}
                                     className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
-                                    placeholder="johndoe@example.com" 
+                                    placeholder="johndoe@example.com"
                                     required
                                 />
                             </div>
@@ -558,7 +714,7 @@ export default function Page() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-2">First Name *</label>
-                                    <input 
+                                    <input
                                         name="first_name"
                                         value={formData.first_name}
                                         onChange={handleInputChange}
@@ -568,7 +724,7 @@ export default function Page() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-2">Last Name</label>
-                                    <input 
+                                    <input
                                         name="last_name"
                                         value={formData.last_name}
                                         onChange={handleInputChange}
@@ -579,7 +735,7 @@ export default function Page() {
 
                             <div>
                                 <label className="block text-sm font-medium mb-2">Middle Name</label>
-                                <input 
+                                <input
                                     name="middle_name"
                                     value={formData.middle_name}
                                     onChange={handleInputChange}
@@ -590,7 +746,7 @@ export default function Page() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-2">City</label>
-                                    <input 
+                                    <input
                                         name="city"
                                         value={formData.city}
                                         onChange={handleInputChange}
@@ -599,7 +755,7 @@ export default function Page() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-2">Country</label>
-                                    <input 
+                                    <input
                                         name="country"
                                         value={formData.country}
                                         onChange={handleInputChange}
@@ -610,7 +766,7 @@ export default function Page() {
 
                             <div>
                                 <label className="block text-sm font-medium mb-2">State</label>
-                                <input 
+                                <input
                                     name="state"
                                     value={formData.state}
                                     onChange={handleInputChange}
@@ -623,8 +779,8 @@ export default function Page() {
                                 <label className="block text-sm font-medium mb-2">Birthday</label>
                                 <div className="grid grid-cols-3 gap-3">
                                     <div>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             name="birthday_day"
                                             value={formData.birthday_day}
                                             onChange={handleInputChange}
@@ -635,8 +791,8 @@ export default function Page() {
                                         />
                                     </div>
                                     <div>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             name="birthday_month"
                                             value={formData.birthday_month}
                                             onChange={handleInputChange}
@@ -647,8 +803,8 @@ export default function Page() {
                                         />
                                     </div>
                                     <div>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             name="birthday_year"
                                             value={formData.birthday_year}
                                             onChange={handleInputChange}
@@ -663,7 +819,7 @@ export default function Page() {
 
                             <div>
                                 <label className="block text-sm font-medium mb-2">Plan ID</label>
-                                <input 
+                                <input
                                     name="plan"
                                     value={formData.plan}
                                     readOnly
@@ -679,8 +835,8 @@ export default function Page() {
 
                             <div>
                                 <label className="block text-sm font-medium mb-2">Postpone Scan (days)</label>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     name="postpone_scan"
                                     value={formData.postpone_scan}
                                     onChange={handleInputChange}
@@ -692,7 +848,7 @@ export default function Page() {
 
                             <div>
                                 <label className="block text-sm font-medium mb-2">Group Tag</label>
-                                <input 
+                                <input
                                     name="group_tag"
                                     value={formData.group_tag}
                                     onChange={handleInputChange}
@@ -703,7 +859,7 @@ export default function Page() {
 
                             <div>
                                 <label className="block text-sm font-medium mb-2">Address Line 1</label>
-                                <input 
+                                <input
                                     name="address_line1"
                                     value={formData.address_line1}
                                     onChange={handleInputChange}
@@ -713,7 +869,7 @@ export default function Page() {
 
                             <div>
                                 <label className="block text-sm font-medium mb-2">Address Line 2</label>
-                                <input 
+                                <input
                                     name="address_line2"
                                     value={formData.address_line2}
                                     onChange={handleInputChange}
@@ -723,7 +879,7 @@ export default function Page() {
 
                             <div>
                                 <label className="block text-sm font-medium mb-2">Zip Code</label>
-                                <input 
+                                <input
                                     name="zipcode"
                                     value={formData.zipcode}
                                     onChange={handleInputChange}
@@ -735,11 +891,10 @@ export default function Page() {
                             <button
                                 type="submit"
                                 disabled={loading || planLoading}
-                                className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 transform mt-4 ${
-                                    loading || planLoading
-                                        ? "bg-gray-600 cursor-not-allowed"
-                                        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 hover:scale-[1.02]"
-                                }`}
+                                className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 transform mt-4 ${loading || planLoading
+                                    ? "bg-gray-600 cursor-not-allowed"
+                                    : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 hover:scale-[1.02]"
+                                    }`}
                             >
                                 {loading ? (
                                     <span className="flex items-center justify-center">
