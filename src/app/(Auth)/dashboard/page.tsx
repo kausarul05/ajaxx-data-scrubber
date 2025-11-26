@@ -11,7 +11,11 @@ import {
     Music2,
     Linkedin,
     Download,
-    ExternalLink
+    ExternalLink,
+    FileText,
+    Info,
+    Plus,
+    Search
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -100,6 +104,20 @@ type Screenshot = {
     search_type: string;
 };
 
+type CustomRemovalItem = {
+    issue_id: string;
+    status: string;
+    exposed_url: string;
+    submitted_at: string;
+    databroker: string | null;
+    data_exposure_image: string;
+};
+
+type CustomRemovalsResponse = {
+    items: CustomRemovalItem[];
+    count: number;
+};
+
 export default function Page() {
     const [clicked, setClicked] = useState(false);
     const [scanning, setScanning] = useState(false);
@@ -130,6 +148,177 @@ export default function Page() {
     const [currentPlan, setCurrentPlan] = useState<SubscriptionData | null>(null);
     const [scanData, setScanData] = useState<ScanResponse | null>(null);
     const [scanLoading, setScanLoading] = useState(false);
+
+    const [showCustomRemovalModal, setShowCustomRemovalModal] = useState(false);
+    const [customRemovals, setCustomRemovals] = useState<CustomRemovalItem[]>([]);
+    const [customRemovalsLoading, setCustomRemovalsLoading] = useState(false);
+    const [submittingRemoval, setSubmittingRemoval] = useState(false);
+    const [removalFormData, setRemovalFormData] = useState({
+        exposed_url: "",
+        search_engine_url: "",
+        search_keywords: "",
+        additional_information: ""
+    });
+    const [proofFile, setProofFile] = useState<File | null>(null);
+
+
+    // Fetch custom removals when modal opens
+    useEffect(() => {
+        if (showCustomRemovalModal) {
+            fetchCustomRemovals();
+        }
+    }, [showCustomRemovalModal]);
+
+    const fetchCustomRemovals = async () => {
+        const memberUuid = localStorage.getItem("uuid");
+        if (!memberUuid) {
+            toast.error("No member UUID found.");
+            return;
+        }
+
+        try {
+            setCustomRemovalsLoading(true);
+            const response = await fetch(`http://10.10.10.46:8000/data/optery/custom-removals/?member_uuid=${memberUuid}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data: CustomRemovalsResponse = await response.json();
+            setCustomRemovals(data.items);
+        } catch (error) {
+            console.error("Error fetching custom removals:", error);
+            toast.error("Failed to load custom removal requests.");
+        } finally {
+            setCustomRemovalsLoading(false);
+        }
+    };
+
+    const handleRemove = (databrokerUuid: string, databrokerName: string) => {
+        setShowCustomRemovalModal(true);
+    };
+
+    const handleSubmitRemoval = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const memberUuid = localStorage.getItem("uuid");
+        if (!memberUuid) {
+            toast.error("No member UUID found.");
+            return;
+        }
+
+        if (!removalFormData.exposed_url) {
+            toast.error("Please provide the exposed URL.");
+            return;
+        }
+
+        if (!proofFile) {
+            toast.error("Please provide proof of exposure.");
+            return;
+        }
+
+        try {
+            setSubmittingRemoval(true);
+
+            const formData = new FormData();
+            formData.append("exposed_url", removalFormData.exposed_url);
+            formData.append("search_engine_url", removalFormData.search_engine_url);
+            formData.append("search_keywords", removalFormData.search_keywords);
+            formData.append("additional_information", removalFormData.additional_information);
+            formData.append("proof_of_exposure", proofFile);
+
+            const response = await fetch(`http://10.10.10.46:8000/data/custom-removal/?member_uuid=${memberUuid}`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            toast.success("Custom removal request submitted successfully!");
+
+            // Reset form
+            setRemovalFormData({
+                exposed_url: "",
+                search_engine_url: "",
+                search_keywords: "",
+                additional_information: ""
+            });
+            setProofFile(null);
+
+            // Refresh the list
+            fetchCustomRemovals();
+
+        } catch (error) {
+            console.error("Error submitting removal request:", error);
+            toast.error("Failed to submit removal request. Please try again.");
+        } finally {
+            setSubmittingRemoval(false);
+        }
+    };
+
+    const handleRemovalInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setRemovalFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            // Check file type and size
+            if (!file.type.startsWith('image/')) {
+                toast.error("Please select an image file (JPG or PNG).");
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) { // 10MB
+                toast.error("File size must be less than 10MB.");
+                return;
+            }
+            setProofFile(file);
+        }
+    };
+
+    // const getStatusBadge = (status: string) => {
+    //     const statusConfig: { [key: string]: { color: string; bgColor: string } } = {
+    //         "Submitted": { color: "text-blue-400", bgColor: "bg-blue-500/20 border-blue-500/30" },
+    //         "In Progress": { color: "text-yellow-400", bgColor: "bg-yellow-500/20 border-yellow-500/30" },
+    //         "Removed": { color: "text-green-400", bgColor: "bg-green-500/20 border-green-500/30" },
+    //         "Rejected": { color: "text-red-400", bgColor: "bg-red-500/20 border-red-500/30" }
+    //     };
+
+    //     const config = statusConfig[status] || statusConfig["Submitted"];
+
+    //     return (
+    //         <span className={`${config.bgColor} ${config.color} text-xs px-2 py-1 rounded-full border`}>
+    //             {status}
+    //         </span>
+    //     );
+    // };
+
+    const closeCustomRemovalModal = () => {
+        setShowCustomRemovalModal(false);
+        setRemovalFormData({
+            exposed_url: "",
+            search_engine_url: "",
+            search_keywords: "",
+            additional_information: ""
+        });
+        setProofFile(null);
+    };
 
     // Fetch current subscription plan on component mount
     useEffect(() => {
@@ -171,7 +360,7 @@ export default function Page() {
     // Function to get the icon component based on databroker name
     const getServiceIcon = (databrokerName: string, size: number = 20) => {
         const name = databrokerName.toLowerCase();
-        
+
         if (name.includes('facebook') || name.includes('people') || name.includes('search')) {
             return <Facebook size={size} className="text-blue-500" />;
         } else if (name.includes('amazon') || name.includes('shopping')) {
@@ -230,7 +419,7 @@ export default function Page() {
         if (databrokerData.has_company_data) badges.push("Company");
 
         return badges.map((badge, index) => (
-            <span 
+            <span
                 key={index}
                 className="bg-cyan-500/20 text-cyan-400 text-xs px-2 py-1 rounded-full border border-cyan-500/30"
             >
@@ -372,10 +561,10 @@ export default function Page() {
         setSelectedService(screenshot);
     };
 
-    const handleRemove = (databrokerUuid: string) => {
-        // Implement removal logic here
-        toast.info(`Removal request sent for ${databrokerUuid}`);
-    };
+    // const handleRemove = (databrokerUuid: string) => {
+    //     // Implement removal logic here
+    //     toast.info(`Removal request sent for ${databrokerUuid}`);
+    // };
 
     const closeModal = () => {
         setSelectedService(null);
@@ -536,7 +725,7 @@ export default function Page() {
                                         <span className="hidden sm:inline">View</span>
                                     </button>
                                     <button
-                                        onClick={() => handleRemove(screenshot.databroker_uuid)}
+                                        onClick={() => handleRemove(screenshot.databroker_uuid, screenshot.databroker_name)}
                                         className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm px-3 sm:px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
                                     >
                                         <Trash2 size={16} />
@@ -569,7 +758,7 @@ export default function Page() {
                             <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
                             <p className="text-cyan-400 text-sm font-mono">
                                 {scanLoading ? "INITIATING SCAN..." : "SCANNING IN PROGRESS..."}
-                        </p>
+                            </p>
                         </div>
                         <div className="w-48 h-1 bg-gray-700 rounded-full mx-auto overflow-hidden">
                             <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-400 animate-scan-progress"></div>
@@ -607,8 +796,8 @@ export default function Page() {
                             <div className="space-y-4">
                                 <h4 className="text-white font-medium">Screenshot</h4>
                                 <div className="border border-[#0F3A52] rounded-lg overflow-hidden">
-                                    <img 
-                                        src={selectedService.image} 
+                                    <img
+                                        src={selectedService.image}
                                         alt={`${selectedService.databroker_name} screenshot`}
                                         className="w-full h-auto object-contain"
                                         onError={(e) => {
@@ -616,9 +805,9 @@ export default function Page() {
                                         }}
                                     />
                                 </div>
-                                <a 
-                                    href={selectedService.url} 
-                                    target="_blank" 
+                                <a
+                                    href={selectedService.url}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
                                 >
@@ -906,6 +1095,225 @@ export default function Page() {
                                 )}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Removal Modal */}
+            {showCustomRemovalModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-modal-fade-in">
+                    <div className="bg-[#0E2A3F] border border-cyan-500/30 rounded-xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-modal-slide-up">
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-white text-2xl font-bold">Custom Removals</h2>
+                                <p className="text-gray-400 text-sm mt-1">
+                                    Submit custom requests for additional data broker profiles not covered by your plan
+                                </p>
+                            </div>
+                            <button
+                                onClick={closeCustomRemovalModal}
+                                className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Left Side - Existing Requests */}
+                            <div className="space-y-6">
+                                <div className="bg-[#0B2233] border border-[#0F3A52] rounded-lg p-6">
+                                    <h3 className="text-white text-lg font-semibold mb-4">Your requests</h3>
+
+                                    {/* Status Filters */}
+                                    <div className="flex flex-wrap gap-2 mb-4">
+                                        <button className="text-cyan-400 text-sm font-medium border-b-2 border-cyan-400 pb-1">
+                                            All ({customRemovals.length})
+                                        </button>
+                                        <button className="text-gray-400 text-sm font-medium hover:text-white transition-colors pb-1">
+                                            Submitted ({customRemovals.filter(item => item.status === "Submitted").length})
+                                        </button>
+                                        <button className="text-gray-400 text-sm font-medium hover:text-white transition-colors pb-1">
+                                            In Progress ({customRemovals.filter(item => item.status === "In Progress").length})
+                                        </button>
+                                        <button className="text-gray-400 text-sm font-medium hover:text-white transition-colors pb-1">
+                                            Removed ({customRemovals.filter(item => item.status === "Removed").length})
+                                        </button>
+                                        <button className="text-gray-400 text-sm font-medium hover:text-white transition-colors pb-1">
+                                            Rejected ({customRemovals.filter(item => item.status === "Rejected").length})
+                                        </button>
+                                    </div>
+
+                                    {/* Requests List */}
+                                    <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                                        {customRemovalsLoading ? (
+                                            <div className="flex justify-center py-8">
+                                                <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                                            </div>
+                                        ) : customRemovals.length === 0 ? (
+                                            <div className="text-center py-8 text-gray-400">
+                                                <FileText size={48} className="mx-auto mb-3 opacity-50" />
+                                                <p>No custom removal requests yet</p>
+                                            </div>
+                                        ) : (
+                                            customRemovals.map((item) => (
+                                                <div key={item.issue_id} className="border border-[#0F3A52] rounded-lg p-4 hover:border-cyan-500/30 transition-colors">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <span className="text-cyan-400 font-mono text-sm">{item.issue_id}</span>
+                                                        {getStatusBadge(item.status)}
+                                                    </div>
+                                                    <p className="text-white text-sm mb-2 truncate">{item.exposed_url}</p>
+                                                    <p className="text-gray-400 text-xs">
+                                                        Submitted: {new Date(item.submitted_at).toLocaleDateString()}
+                                                    </p>
+                                                    {item.data_exposure_image && (
+                                                        <div className="mt-2">
+                                                            <img
+                                                                src={item.data_exposure_image}
+                                                                alt="Exposure proof"
+                                                                className="w-20 h-20 object-cover rounded border border-[#0F3A52]"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Exclusive Feature Notice */}
+                                {/* <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 text-purple-400 mb-2">
+                                        <Info size={16} />
+                                        <span className="font-semibold">EXCLUSIVE FEATURE FOR ULTIMATE SUBSCRIPTION</span>
+                                    </div>
+                                    <p className="text-gray-300 text-sm">
+                                        Submit custom requests for additional data broker profiles not already covered by the Ultimate plan.
+                                    </p>
+                                </div> */}
+                            </div>
+
+                            {/* Right Side - Submit New Request */}
+                            <div className="bg-[#0B2233] border border-[#0F3A52] rounded-lg p-6">
+                                <h3 className="text-white text-lg font-semibold mb-6 flex items-center gap-2">
+                                    <Plus size={20} />
+                                    Submit Exposed Link
+                                </h3>
+
+                                <form onSubmit={handleSubmitRemoval} className="space-y-4">
+                                    {/* Exposed URL */}
+                                    <div>
+                                        <label className="block text-white text-sm font-medium mb-2">
+                                            Exposed URL *
+                                        </label>
+                                        <input
+                                            type="url"
+                                            name="exposed_url"
+                                            value={removalFormData.exposed_url}
+                                            onChange={handleRemovalInputChange}
+                                            className="w-full p-3 bg-[#0A1E2E] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors text-white"
+                                            placeholder="Enter exposed URL here"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Proof of Exposure */}
+                                    <div>
+                                        <label className="block text-white text-sm font-medium mb-2">
+                                            Proof of your data exposure *
+                                        </label>
+                                        <div className="border-2 border-dashed border-cyan-400/30 rounded-lg p-6 text-center hover:border-cyan-400/50 transition-colors">
+                                            <input
+                                                type="file"
+                                                accept="image/jpeg,image/png"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                                id="proof-file"
+                                                required
+                                            />
+                                            <label htmlFor="proof-file" className="cursor-pointer">
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <FileText size={32} className="text-cyan-400" />
+                                                    <span className="text-cyan-400 font-medium">Select file</span>
+                                                    <span className="text-gray-400 text-sm">or drag and drop here</span>
+                                                    <span className="text-gray-500 text-xs">JPG or PNG file size no more than 10MB</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        {proofFile && (
+                                            <p className="text-green-400 text-sm mt-2">
+                                                Selected: {proofFile.name}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Search Engine URL */}
+                                    <div>
+                                        <label className="block text-white text-sm font-medium mb-2 flex items-center gap-2">
+                                            <Search size={16} />
+                                            Search engine results page URL (optional)
+                                        </label>
+                                        <input
+                                            type="url"
+                                            name="search_engine_url"
+                                            value={removalFormData.search_engine_url}
+                                            onChange={handleRemovalInputChange}
+                                            className="w-full p-3 bg-[#0A1E2E] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors text-white"
+                                            placeholder="Enter URL of the search engine"
+                                        />
+                                    </div>
+
+                                    {/* Search Keywords */}
+                                    <div>
+                                        <label className="block text-white text-sm font-medium mb-2">
+                                            Search keyword(s) used to locate profile (optional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="search_keywords"
+                                            value={removalFormData.search_keywords}
+                                            onChange={handleRemovalInputChange}
+                                            className="w-full p-3 bg-[#0A1E2E] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors text-white"
+                                            placeholder="Add keywords from your search"
+                                        />
+                                    </div>
+
+                                    {/* Additional Information */}
+                                    <div>
+                                        <label className="block text-white text-sm font-medium mb-2">
+                                            Additional information (optional)
+                                        </label>
+                                        <textarea
+                                            name="additional_information"
+                                            value={removalFormData.additional_information}
+                                            onChange={handleRemovalInputChange}
+                                            rows={3}
+                                            className="w-full p-3 bg-[#0A1E2E] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors text-white resize-none"
+                                            placeholder="Add additional information"
+                                        />
+                                    </div>
+
+                                    {/* Submit Button */}
+                                    <button
+                                        type="submit"
+                                        disabled={submittingRemoval}
+                                        className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 transform ${submittingRemoval
+                                                ? "bg-gray-600 cursor-not-allowed"
+                                                : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 hover:scale-[1.02]"
+                                            } text-white`}
+                                    >
+                                        {submittingRemoval ? (
+                                            <span className="flex items-center justify-center">
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                Submitting...
+                                            </span>
+                                        ) : (
+                                            "Submit"
+                                        )}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
