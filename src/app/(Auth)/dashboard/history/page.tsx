@@ -74,13 +74,14 @@ export default function HistoryPage() {
     // Fetch history data from API
     useEffect(() => {
         const fetchHistoryData = async () => {
-            const member_uuid = localStorage.getItem("uuid")
+            const userInfo = localStorage.getItem("userData")
+           const user = JSON.parse(userInfo);
             try {
                 setLoading(true);
                 setError(null);
                 const data: ApiResponse = await apiRequest(
                     "GET", 
-                    `/data/optery/history/?member_uuid=${member_uuid}`
+                    `/data/optery/history/${user?.email}`
                 );
                 setHistoryData(data.history);
             } catch (err) {

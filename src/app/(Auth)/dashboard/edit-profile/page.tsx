@@ -30,7 +30,6 @@ export default function Profile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
-    const accessToken = localStorage.getItem("authToken");
     const [formData, setFormData] = useState({
         fullname: "",
         email: "",
@@ -41,7 +40,9 @@ export default function Profile() {
         Bio: ""
     });
 
-    // Available options for dropdowns
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+    // Remove accessToken state and get it directly when needed
     const [availableOptions, setAvailableOptions] = useState({
         countries: ["USA", "Canada", "India"],
         cities: ["New York", "Los Angeles", "Chicago"],
@@ -49,23 +50,66 @@ export default function Profile() {
         genders: ["male", "female", "Other"]
     });
 
+    const getAccessToken = (): string | null => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem("authToken");
+        }
+        return null;
+    };
+
     // Fetch profile data on component mount
     useEffect(() => {
         fetchProfileData();
     }, []);
 
     const fetchProfileData = async () => {
+        const token = getAccessToken();
+        console.log("Token in fetchProfileData:", token);
+
+        if (!token) {
+            setMessage("No authentication token found");
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             const data: ProfileData = await apiRequest("GET", "/accounts/profile/", null, {
                 headers: {
-                    Authorization: `Bearer ${accessToken}`
+                    Authorization: `Bearer ${token}`
                 }
             });
 
-            console.log("API Response:", data); // Debug log
+            console.log("Full API Response:", data);
 
-            // Update available options with values from API
+            if (!data) {
+                throw new Error("No data received from API");
+            }
+
+            if (!data.user) {
+                console.warn("User object is missing from response, using fallback");
+                const userData = data as any;
+                setFormData({
+                    fullname: userData.fullname || userData.user?.fullname || "",
+                    email: userData.email || userData.user?.email || "",
+                    Country: data.Country || "",
+                    City: data.City || "",
+                    Province: data.Province || "",
+                    Gender: data.Gender || "",
+                    Bio: data.Bio || ""
+                });
+            } else {
+                setFormData({
+                    fullname: data.user?.fullname || "",
+                    email: data.user?.email || "",
+                    Country: data.Country || "",
+                    City: data.City || "",
+                    Province: data.Province || "",
+                    Gender: data.Gender || "",
+                    Bio: data.Bio || ""
+                });
+            }
+
             setAvailableOptions(prev => ({
                 countries: [...new Set([...prev.countries, data.Country || ""])].filter(Boolean),
                 cities: [...new Set([...prev.cities, data.City || ""])].filter(Boolean),
@@ -73,31 +117,11 @@ export default function Profile() {
                 genders: [...new Set([...prev.genders, data.Gender || ""])].filter(Boolean)
             }));
 
-            // Set form data with API response
-            setFormData({
-                fullname: data.user.fullname || "",
-                email: data.user.email || "",
-                Country: data.Country || "",
-                City: data.City || "",
-                Province: data.Province || "",
-                Gender: data.Gender || "",
-                Bio: data.Bio || ""
-            });
-
-            // console.log("Form Data Set:", { // Debug log
-            //     fullname: data.user.fullname || "",
-            //     Country: data.Country || "",
-            //     City: data.City || "",
-            //     Province: data.Province || "",
-            //     Gender: data.Gender || "",
-            //     Bio: data.Bio || ""
-            // });
-
-            // Set profile picture if available
             if (data.profile_picture) {
                 setPreview(data.profile_picture);
             }
         } catch (error: any) {
+            console.error("Error fetching profile:", error);
             setMessage(error.message || "Failed to load profile data.");
         } finally {
             setLoading(false);
@@ -112,12 +136,46 @@ export default function Profile() {
     };
 
     // Handle image change
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
+        if (!file) return;
+
+        try {
+            // Create local preview
             const imageUrl = URL.createObjectURL(file);
             setPreview(imageUrl);
-            // Here you would typically upload the image to the server
+            setSelectedFile(file); // Store the file for later upload
+
+            // Optional: Auto-upload image when selected
+            await uploadProfilePicture(file);
+
+        } catch (error: any) {
+            setMessage(error.message || "Failed to upload profile picture.");
+            await fetchProfileData();
+        }
+    };
+
+    const uploadProfilePicture = async (file: File) => {
+        const token = getAccessToken();
+        if (!token) {
+            setMessage("No authentication token found");
+            return;
+        }
+
+        try {
+            const uploadData = new FormData();
+            uploadData.append('profile_picture', file);
+
+            await apiRequest("PATCH", "/accounts/profile/update/", uploadData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    // Don't set Content-Type for FormData
+                }
+            });
+
+            setMessage("Profile picture updated successfully!");
+        } catch (error: any) {
+            throw error; // Re-throw to handle in caller
         }
     };
 
@@ -132,9 +190,23 @@ export default function Profile() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        const token = getAccessToken();
+        if (!token) {
+            setMessage("No authentication token found");
+            return;
+        }
+
         setSaving(true);
         setMessage("");
+
         try {
+            // First, upload profile picture if selected
+            if (selectedFile) {
+                await uploadProfilePicture(selectedFile);
+                setSelectedFile(null); // Reset after upload
+            }
+
+            // Then update profile data
             await apiRequest("PATCH", "/accounts/profile/update/", {
                 fullname: formData.fullname,
                 Country: formData.Country,
@@ -144,20 +216,20 @@ export default function Profile() {
                 Bio: formData.Bio
             }, {
                 headers: {
-                    Authorization: `Bearer ${accessToken}`
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
             setMessage("Profile updated successfully!");
-
-            // Refresh profile data to get latest from server
             await fetchProfileData();
+
         } catch (error: any) {
             setMessage(error.message || "Failed to update profile.");
         } finally {
             setSaving(false);
         }
-    };
+    };  
 
     if (loading) {
         return (

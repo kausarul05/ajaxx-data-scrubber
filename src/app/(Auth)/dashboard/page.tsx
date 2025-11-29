@@ -199,14 +199,19 @@ export default function Page() {
     const [draggedImage, setDraggedImage] = useState<string | null>(null);
     const [activeRemovalTab, setActiveRemovalTab] = useState<'all' | 'in-progress'>('all');
 
+    const [memenerUUID, setMemberUUID] = useState("")
+
+    // Get user email from localStorage or auth token when component mounts
     // Get user email from localStorage or auth token when component mounts
     useEffect(() => {
         const getUserEmail = () => {
-            // Try to get email from localStorage or wherever you store user info
-            const userInfo = localStorage.getItem("userInfo");
+            // Get email from localStorage userInfo
+            const userInfo = localStorage.getItem("userData");
+            // console.log(userInfo?.email)
             if (userInfo) {
                 try {
                     const user = JSON.parse(userInfo);
+                    // console.log(user?.email)
                     if (user.email) {
                         setUserEmail(user.email);
                         setFormData(prev => ({ ...prev, email: user.email }));
@@ -215,15 +220,13 @@ export default function Page() {
                     console.error("Error parsing user info:", error);
                 }
             }
-            
-            // If no user info in localStorage, you might get it from your auth system
-            // For example, if you store it in authToken or have a user profile API
-            // This is a placeholder - replace with your actual auth logic
+
+            // If no user info in localStorage, try auth token or other sources
             const token = localStorage.getItem("authToken");
             if (token && !userEmail) {
                 // You might need to decode JWT token or call user profile API
                 // For now, we'll set a placeholder
-                setUserEmail("user@example.com"); // Replace with actual logic
+                // setUserEmail("user@example.com"); // Replace with actual logic
                 setFormData(prev => ({ ...prev, email: "user@example.com" }));
             }
         };
@@ -233,41 +236,58 @@ export default function Page() {
     }, []);
 
     // Check member data from API - ALWAYS check the API regardless of localStorage
+    // Check member data from API - ALWAYS check the API regardless of localStorage
     const checkMemberData = async () => {
-        const memberUuid = localStorage.getItem("uuid");
-        
         try {
             setCheckingMemberData(true);
-            
-            if (memberUuid) {
-                // If we have UUID, check if data exists in API
-                const response = await fetch(`http://10.10.10.46:8000/data/api/optery-members/${memberUuid}/`, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                    },
-                });
 
-                if (response.ok) {
-                    const data: MemberDataResponse = await response.json();
-                    if (data.success && data.data) {
-                        setMemberData(data);
-                        setFormSubmitted(true); // Mark form as submitted since data exists
-                        console.log("Member data found in API:", data.data);
-                        return; // Data exists, don't show form
-                    }
-                } else if (response.status === 404) {
-                    console.log("No member data found in API - will show form when GO is clicked");
-                    setMemberData(null);
-                    setFormSubmitted(false);
-                }
+            // Get user email from localStorage
+            const userInfo = localStorage.getItem("userData");
+            if (!userInfo) {
+                console.log("No user info found in localStorage");
+                setMemberData(null);
+                setFormSubmitted(false);
+                return;
             }
-            
-            // If no UUID or API returned 404, we need to show form
+
+            const user = JSON.parse(userInfo);
+            const userEmail = user.email;
+
+            if (!userEmail) {
+                console.log("No email found in user info");
+                setMemberData(null);
+                setFormSubmitted(false);
+                return;
+            }
+
+            // Use email from localStorage in the API endpoint
+            const response = await fetch(`http://10.10.10.46:8000/data/api/optery-members/${userEmail}/`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                },
+            });
+
+            if (response.ok) {
+                const data: MemberDataResponse = await response.json();
+                if (data.success && data.data) {
+                    setMemberData(data);
+                    setFormSubmitted(true); // Mark form as submitted since data exists
+                    setMemberUUID(data?.data?.uuid)
+                    console.log("Member data found in API:", data.data);
+                    return; // Data exists, don't show form
+                }
+            } else if (response.status === 404) {
+                console.log("No member data found in API - will show form when GO is clicked");
+                setMemberData(null);
+                setFormSubmitted(false);
+            }
+
+            // If API returned 404 or no data, we need to show form
             setMemberData(null);
             setFormSubmitted(false);
-            
+
         } catch (error) {
             console.error("Error checking member data:", error);
             setMemberData(null);
@@ -293,7 +313,7 @@ export default function Page() {
 
         try {
             setCustomRemovalsLoading(true);
-            const response = await fetch(`http://10.10.10.46:8000/data/optery/custom-removals/?member_uuid=${memberUuid}`, {
+            const response = await fetch(`http://10.10.10.46:8000/data/optery/custom-removals/?member_uuid=${memenerUUID}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -385,7 +405,7 @@ export default function Page() {
                 formData.append("proof_of_exposure", proofFile);
             }
 
-            const response = await fetch(`http://10.10.10.46:8000/data/custom-removal/?member_uuid=${memberUuid}`, {
+            const response = await fetch(`http://10.10.10.46:8000/data/custom-removal/?member_uuid=${memenerUUID}`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -610,12 +630,12 @@ export default function Page() {
     };
 
     const startDataScan = async () => {
-        const memberUuid = localStorage.getItem("uuid");
+        // const memberUuid = localStorage.getItem("uuid");
 
-        if (!memberUuid) {
-            toast.error("No member UUID found. Please submit the form first.");
-            return;
-        }
+        // if (!memberUuid) {
+        //     toast.error("No member UUID found. Please submit the form first.");
+        //     return;
+        // }
 
         try {
             setScanLoading(true);
@@ -623,7 +643,7 @@ export default function Page() {
             setScanning(true);
 
             // Call the data scans API
-            const response = await fetch(`http://10.10.10.46:8000/data/optery/data-scans/?member_uuid=${memberUuid}`, {
+            const response = await fetch(`http://10.10.10.46:8000/data/optery/data-scans/?member_uuid=${memenerUUID}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -755,7 +775,7 @@ export default function Page() {
         try {
             // Prepare payload according to API requirements
             const payload = {
-                email: formData.email,
+                email: userEmail,
                 first_name: formData.first_name,
                 last_name: formData.last_name,
                 middle_name: formData.middle_name,
@@ -788,13 +808,14 @@ export default function Page() {
 
             const result = await response.json();
 
+            console.log(result?.data?.member_uuid)
             if (result) {
                 setFormSubmitted(true);
                 setShowFormModal(false);
-                localStorage.setItem("uuid", result?.data?.uuid);
+                localStorage.setItem("uuid", result?.data?.member_uuid);
                 setMemberData(result); // Update member data state
                 toast.success("Member added successfully! You can now start the scan.");
-                
+
                 // Start scan automatically after form submission
                 await startDataScan();
             } else {
@@ -1133,7 +1154,7 @@ export default function Page() {
                                 <label className="block text-sm font-medium mb-2">Email *</label>
                                 <input
                                     name="email"
-                                    value={userEmail || formData.email}
+                                    value={userEmail}
                                     onChange={handleInputChange}
                                     readOnly
                                     className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors cursor-not-allowed opacity-70"
