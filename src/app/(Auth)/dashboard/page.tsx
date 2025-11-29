@@ -199,7 +199,7 @@ export default function Page() {
     const [draggedImage, setDraggedImage] = useState<string | null>(null);
     const [activeRemovalTab, setActiveRemovalTab] = useState<'all' | 'in-progress'>('all');
 
-    const [memenerUUID, setMemberUUID] = useState("")
+    const [memberUUID, setMemberUUID] = useState("")
 
     // Get user email from localStorage or auth token when component mounts
     // Get user email from localStorage or auth token when component mounts
@@ -233,7 +233,7 @@ export default function Page() {
 
         getUserEmail();
         checkMemberData();
-    }, []);
+    }, [memberUUID]);
 
     // Check member data from API - ALWAYS check the API regardless of localStorage
     // Check member data from API - ALWAYS check the API regardless of localStorage
@@ -313,7 +313,7 @@ export default function Page() {
 
         try {
             setCustomRemovalsLoading(true);
-            const response = await fetch(`http://10.10.10.46:8000/data/optery/custom-removals/?member_uuid=${memenerUUID}`, {
+            const response = await fetch(`http://10.10.10.46:8000/data/optery/custom-removals/?member_uuid=${memberUUID}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -405,7 +405,7 @@ export default function Page() {
                 formData.append("proof_of_exposure", proofFile);
             }
 
-            const response = await fetch(`http://10.10.10.46:8000/data/custom-removal/?member_uuid=${memenerUUID}`, {
+            const response = await fetch(`http://10.10.10.46:8000/data/custom-removal/?member_uuid=${memberUUID}`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -643,7 +643,7 @@ export default function Page() {
             setScanning(true);
 
             // Call the data scans API
-            const response = await fetch(`http://10.10.10.46:8000/data/optery/data-scans/?member_uuid=${memenerUUID}`, {
+            const response = await fetch(`http://10.10.10.46:8000/data/optery/data-scans/?member_uuid=${memberUUID}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -786,7 +786,7 @@ export default function Page() {
                 birthday_month: formData.birthday_month ? parseInt(formData.birthday_month) : null,
                 birthday_year: formData.birthday_year ? parseInt(formData.birthday_year) : null,
                 plan: formData.plan,
-                postpone_scan: formData.postpone_scan ? parseInt(formData.postpone_scan) > 0 : false,
+                postpone_scan: formData.postpone_scan ? parseInt(formData.postpone_scan)  : "",
                 group_tag: null,
                 address_line1: formData.address_line1,
                 address_line2: formData.address_line2,

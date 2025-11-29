@@ -226,7 +226,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                 // Send the access token to your backend
                 const response = await apiRequest("POST", "/accounts/auth/google/", {
                     access_token: authTokens.accessToken,
-                    scope: 'email profile openid'
+                    // scope: 'email profile openid'
                 });
 
                 console.log("Backend response:", response);
@@ -284,10 +284,11 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
     const handleGoogleAuth = (): Promise<{ idToken: string; accessToken: string }> => {
         return new Promise((resolve, reject) => {
             const client = (window as any).google.accounts.oauth2.initTokenClient({
-                client_id: '784899934774-rcpd51tom6fgq54m0bitd2pcbe193tlg.apps.googleusercontent.com',
+                client_id: '200786604966-c92h7dbqfuj3h69bie70nq4atflk6u8m.apps.googleusercontent.com',
                 scope: 'email profile openid',
                 callback: async (response: any) => {
                     if (response.access_token) {
+                        console.log("FUll Response Kausarrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", response)
                         console.log("Access token received:", response.access_token);
                         console.log("ID token received xxxxxxxxxxxxxxx:", response);
                         try {
@@ -307,7 +308,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                             }
 
                             const userInfo = await userInfoResponse.json();
-                            console.log("User info:", userInfo);
+                            console.log("User info: mamunnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn vai", userInfo);
 
                             resolve({
                                 idToken: response.id_token, // Use access token as ID token
