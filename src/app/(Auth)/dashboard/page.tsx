@@ -118,6 +118,37 @@ type CustomRemovalsResponse = {
     count: number;
 };
 
+// Type for member data API response
+type MemberDataResponse = {
+    success: boolean;
+    data: {
+        uuid: string;
+        email: string;
+        first_name: string;
+        last_name: string;
+        middle_name: string;
+        city: string;
+        country: string;
+        state: string;
+        birthday_day: number;
+        birthday_month: number;
+        birthday_year: number;
+        plan: string;
+        postpone_scan: number;
+        group_tag: string | null;
+        address_line1: string;
+        address_line2: string;
+        zipcode: string;
+        optery_response: {
+            uuid: string;
+        };
+        status_code: number;
+        is_success: boolean;
+        created_at: string;
+        updated_at: string;
+    };
+};
+
 export default function Page() {
     const [clicked, setClicked] = useState(false);
     const [scanning, setScanning] = useState(false);
@@ -148,6 +179,9 @@ export default function Page() {
     const [currentPlan, setCurrentPlan] = useState<SubscriptionData | null>(null);
     const [scanData, setScanData] = useState<ScanResponse | null>(null);
     const [scanLoading, setScanLoading] = useState(false);
+    const [memberData, setMemberData] = useState<MemberDataResponse | null>(null);
+    const [checkingMemberData, setCheckingMemberData] = useState(false);
+    const [userEmail, setUserEmail] = useState(""); // Store logged in user's email
 
     const [showCustomRemovalModal, setShowCustomRemovalModal] = useState(false);
     const [customRemovals, setCustomRemovals] = useState<CustomRemovalItem[]>([]);
@@ -161,6 +195,87 @@ export default function Page() {
     });
     const [proofFile, setProofFile] = useState<File | null>(null);
 
+    const [isDragOver, setIsDragOver] = useState(false);
+    const [draggedImage, setDraggedImage] = useState<string | null>(null);
+    const [activeRemovalTab, setActiveRemovalTab] = useState<'all' | 'in-progress'>('all');
+
+    // Get user email from localStorage or auth token when component mounts
+    useEffect(() => {
+        const getUserEmail = () => {
+            // Try to get email from localStorage or wherever you store user info
+            const userInfo = localStorage.getItem("userInfo");
+            if (userInfo) {
+                try {
+                    const user = JSON.parse(userInfo);
+                    if (user.email) {
+                        setUserEmail(user.email);
+                        setFormData(prev => ({ ...prev, email: user.email }));
+                    }
+                } catch (error) {
+                    console.error("Error parsing user info:", error);
+                }
+            }
+            
+            // If no user info in localStorage, you might get it from your auth system
+            // For example, if you store it in authToken or have a user profile API
+            // This is a placeholder - replace with your actual auth logic
+            const token = localStorage.getItem("authToken");
+            if (token && !userEmail) {
+                // You might need to decode JWT token or call user profile API
+                // For now, we'll set a placeholder
+                setUserEmail("user@example.com"); // Replace with actual logic
+                setFormData(prev => ({ ...prev, email: "user@example.com" }));
+            }
+        };
+
+        getUserEmail();
+        checkMemberData();
+    }, []);
+
+    // Check member data from API - ALWAYS check the API regardless of localStorage
+    const checkMemberData = async () => {
+        const memberUuid = localStorage.getItem("uuid");
+        
+        try {
+            setCheckingMemberData(true);
+            
+            if (memberUuid) {
+                // If we have UUID, check if data exists in API
+                const response = await fetch(`http://10.10.10.46:8000/data/api/optery-members/${memberUuid}/`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                    },
+                });
+
+                if (response.ok) {
+                    const data: MemberDataResponse = await response.json();
+                    if (data.success && data.data) {
+                        setMemberData(data);
+                        setFormSubmitted(true); // Mark form as submitted since data exists
+                        console.log("Member data found in API:", data.data);
+                        return; // Data exists, don't show form
+                    }
+                } else if (response.status === 404) {
+                    console.log("No member data found in API - will show form when GO is clicked");
+                    setMemberData(null);
+                    setFormSubmitted(false);
+                }
+            }
+            
+            // If no UUID or API returned 404, we need to show form
+            setMemberData(null);
+            setFormSubmitted(false);
+            
+        } catch (error) {
+            console.error("Error checking member data:", error);
+            setMemberData(null);
+            setFormSubmitted(false);
+        } finally {
+            setCheckingMemberData(false);
+        }
+    };
 
     // Fetch custom removals when modal opens
     useEffect(() => {
@@ -231,7 +346,44 @@ export default function Page() {
             formData.append("search_engine_url", removalFormData.search_engine_url);
             formData.append("search_keywords", removalFormData.search_keywords);
             formData.append("additional_information", removalFormData.additional_information);
-            formData.append("proof_of_exposure", proofFile);
+
+            // If we have a dragged image URL, we need to handle it differently
+            if (draggedImage && proofFile.size === 0) {
+                // For URL-based images, we might need to download it first or send the URL
+                // For now, let's try to fetch it with proper headers
+                try {
+                    const response = await fetch(draggedImage, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'image/*',
+                        },
+                        mode: 'cors'
+                    });
+
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const actualFile = new File([blob], proofFile.name, {
+                            type: blob.type,
+                            lastModified: new Date().getTime()
+                        });
+                        formData.append("proof_of_exposure", actualFile);
+                    } else {
+                        // If fetch fails, fall back to sending the URL in additional info
+                        formData.append("proof_of_exposure", proofFile);
+                        formData.append("image_url", draggedImage);
+                    }
+                } catch (fetchError) {
+                    console.error('Error fetching image:', fetchError);
+                    // Fallback: send the original file and add URL to additional info
+                    formData.append("proof_of_exposure", proofFile);
+                    const updatedInfo = removalFormData.additional_information +
+                        `\n\nImage Source URL: ${draggedImage}`;
+                    formData.set("additional_information", updatedInfo);
+                }
+            } else {
+                // Regular file upload
+                formData.append("proof_of_exposure", proofFile);
+            }
 
             const response = await fetch(`http://10.10.10.46:8000/data/custom-removal/?member_uuid=${memberUuid}`, {
                 method: "POST",
@@ -256,6 +408,7 @@ export default function Page() {
                 additional_information: ""
             });
             setProofFile(null);
+            setDraggedImage(null);
 
             // Refresh the list
             fetchCustomRemovals();
@@ -292,32 +445,40 @@ export default function Page() {
         }
     };
 
-    // const getStatusBadge = (status: string) => {
-    //     const statusConfig: { [key: string]: { color: string; bgColor: string } } = {
-    //         "Submitted": { color: "text-blue-400", bgColor: "bg-blue-500/20 border-blue-500/30" },
-    //         "In Progress": { color: "text-yellow-400", bgColor: "bg-yellow-500/20 border-yellow-500/30" },
-    //         "Removed": { color: "text-green-400", bgColor: "bg-green-500/20 border-green-500/30" },
-    //         "Rejected": { color: "text-red-400", bgColor: "bg-red-500/20 border-red-500/30" }
-    //     };
+    const downloadImage = async (imageUrl: string, filename: string) => {
+        try {
+            // Try direct download first
+            const response = await fetch(imageUrl, {
+                method: 'GET',
+                mode: 'cors',
+                credentials: 'omit'
+            });
 
-    //     const config = statusConfig[status] || statusConfig["Submitted"];
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
 
-    //     return (
-    //         <span className={`${config.bgColor} ${config.color} text-xs px-2 py-1 rounded-full border`}>
-    //             {status}
-    //         </span>
-    //     );
-    // };
+                toast.success(`Image downloaded as ${filename}`);
+            } else {
+                throw new Error('Network response was not ok');
+            }
+        } catch (error) {
+            console.error('Error downloading image:', error);
 
-    const closeCustomRemovalModal = () => {
-        setShowCustomRemovalModal(false);
-        setRemovalFormData({
-            exposed_url: "",
-            search_engine_url: "",
-            search_keywords: "",
-            additional_information: ""
-        });
-        setProofFile(null);
+            // Fallback: Open in new tab for manual download
+            // toast.info('Opening image in new tab for manual download...');
+            const newTab = window.open(imageUrl, '_blank');
+            if (!newTab) {
+                toast.error('Please allow popups to download the image');
+            }
+        }
     };
 
     // Fetch current subscription plan on component mount
@@ -393,17 +554,25 @@ export default function Page() {
     };
 
     // Function to get status badge color
-    const getStatusBadge = (exposureStatus: number, exposureDescription: string) => {
-        if (exposureStatus === 10) {
-            return (
-                <span className="bg-red-500/20 text-red-400 text-xs px-2 py-1 rounded-full border border-red-500/30">
-                    {exposureDescription}
-                </span>
-            );
-        }
+    const getStatusBadge = (status: any) => {
+        const statusString = String(status || "submitted").toLowerCase();
+
+        const statusConfig: { [key: string]: { color: string; bgColor: string } } = {
+            "submitted": { color: "text-blue-400", bgColor: "bg-blue-500/20 border-blue-500/30" },
+            "in progress": { color: "text-yellow-400", bgColor: "bg-yellow-500/20 border-yellow-500/30" },
+            "in_progress": { color: "text-yellow-400", bgColor: "bg-yellow-500/20 border-yellow-500/30" },
+            "progress": { color: "text-yellow-400", bgColor: "bg-yellow-500/20 border-yellow-500/30" },
+            // For "All" tab, you might still see completed/rejected, but they won't show in "In Process"
+            "removed": { color: "text-green-400", bgColor: "bg-green-500/20 border-green-500/30" },
+            "completed": { color: "text-green-400", bgColor: "bg-green-500/20 border-green-500/30" },
+            "rejected": { color: "text-red-400", bgColor: "bg-red-500/20 border-red-500/30" }
+        };
+
+        const config = statusConfig[statusString] || statusConfig["submitted"];
+
         return (
-            <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full border border-green-500/30">
-                {exposureDescription}
+            <span className={`${config.bgColor} ${config.color} text-xs px-2 py-1 rounded-full border capitalize`}>
+                {statusString === 'in_progress' ? 'In Process' : statusString.replace('_', ' ')}
             </span>
         );
     };
@@ -429,12 +598,14 @@ export default function Page() {
     };
 
     const handleClick = async () => {
-        if (!formSubmitted) {
+        // ALWAYS check the API first, regardless of localStorage
+        if (!memberData) {
+            // If no member data exists in API, show the form modal
             setShowFormModal(true);
             return;
         }
 
-        // If form is submitted, start the scan process
+        // If member data exists, start the scan process
         await startDataScan();
     };
 
@@ -484,6 +655,90 @@ export default function Page() {
         } finally {
             setScanLoading(false);
         }
+    };
+
+    const handleFileSelect = (file: File) => {
+        // Check file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            toast.error("Please select a valid image file (JPG, PNG, or WebP).");
+            return;
+        }
+
+        // Check file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error("File size must be less than 10MB.");
+            return;
+        }
+
+        setProofFile(file);
+        toast.success("Image uploaded successfully!");
+    };
+
+    const getFilteredRemovals = () => {
+        if (!customRemovals || !Array.isArray(customRemovals)) return [];
+
+        return customRemovals.filter(item => {
+            if (!item || !item.status) return false;
+
+            const status = String(item.status).toLowerCase().trim();
+
+            switch (activeRemovalTab) {
+                case 'in-progress':
+                    // Show both "submitted" and "in progress" statuses in "In Process" tab
+                    return status.includes("progress") || status.includes("in_progress") ||
+                        status === "in progress" || status === "submitted";
+                default:
+                    return true; // 'all' tab shows everything
+            }
+        });
+    };
+
+    // Handle drag start from left side images
+    const handleDragStart = (e: React.DragEvent, imageUrl: string) => {
+        e.dataTransfer.setData('text/plain', imageUrl);
+        setDraggedImage(imageUrl);
+    };
+
+    // Handle drag over on right side drop zone
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(true);
+    };
+
+    // Handle drop on right side - Simplified version
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            if (file.type.startsWith('image/')) {
+                handleFileSelect(file);
+            } else {
+                toast.error("Please drop an image file (JPG, PNG, WebP)");
+            }
+        }
+    };
+
+    const handleImageUrlSelect = (imageUrl: string) => {
+        // Create a mock file object from the URL
+        const fileName = imageUrl.split('/').pop()?.split('?')[0] || 'screenshot.png';
+
+        // Create a simple file-like object
+        const mockFile = new File([], fileName, {
+            type: 'image/png',
+            lastModified: new Date().getTime()
+        });
+
+        // Store both the file and the original URL
+        setProofFile(mockFile);
+
+        // Store the image URL separately for display
+        setDraggedImage(imageUrl);
+
+        toast.success("Image added from existing request!");
     };
 
     const handleSubmitForm = async (e: React.FormEvent) => {
@@ -537,7 +792,11 @@ export default function Page() {
                 setFormSubmitted(true);
                 setShowFormModal(false);
                 localStorage.setItem("uuid", result?.data?.uuid);
+                setMemberData(result); // Update member data state
                 toast.success("Member added successfully! You can now start the scan.");
+                
+                // Start scan automatically after form submission
+                await startDataScan();
             } else {
                 toast.error(`Failed to add member: ${result.message || "Unknown error"}`);
             }
@@ -560,11 +819,6 @@ export default function Page() {
     const handleView = (screenshot: Screenshot) => {
         setSelectedService(screenshot);
     };
-
-    // const handleRemove = (databrokerUuid: string) => {
-    //     // Implement removal logic here
-    //     toast.info(`Removal request sent for ${databrokerUuid}`);
-    // };
 
     const closeModal = () => {
         setSelectedService(null);
@@ -664,19 +918,6 @@ export default function Page() {
                     </div>
                 </div>
 
-                {/* Download Report Button - Show when scan is complete */}
-                {/* {showServices && scanData?.scans[0]?.report_pdf && (
-                    <div className="flex justify-center mb-6">
-                        <button
-                            onClick={downloadReport}
-                            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105"
-                        >
-                            <Download size={20} />
-                            Download Full Report (PDF)
-                        </button>
-                    </div>
-                )} */}
-
                 {/* Services List - Animated Entry */}
                 {showServices && (
                     <div className="space-y-4 animate-services-appear">
@@ -741,11 +982,11 @@ export default function Page() {
                 {!showServices && !scanning && (
                     <div className="text-center mt-6 lg:mt-8 animate-pulse">
                         <p className="text-cyan-400/70 text-sm font-mono">
-                            {formSubmitted ? "CLICK TO START SCAN" : "CLICK TO SCAN YOUR ACCOUNT"}
+                            {memberData ? "CLICK TO START SCAN" : "CLICK TO SCAN YOUR ACCOUNT"}
                         </p>
-                        {formSubmitted && (
+                        {memberData && (
                             <p className="text-green-400 text-xs mt-1">
-                                Form submitted successfully! Ready to scan.
+                                Member data found! Ready to scan.
                             </p>
                         )}
                     </div>
@@ -871,8 +1112,8 @@ export default function Page() {
                 </div>
             )}
 
-            {/* Form Modal (keep the existing form modal code as is) */}
-            {showFormModal && (
+            {/* Form Modal - Only show if member data doesn't exist in API */}
+            {showFormModal && !memberData && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-modal-fade-in">
                     <div className="bg-[#0E2A3F] border border-cyan-400/40 rounded-xl p-6 w-full max-w-7xl max-h-[90vh] overflow-y-auto shadow-2xl animate-modal-slide-up">
                         {/* Header with Close Button */}
@@ -892,12 +1133,16 @@ export default function Page() {
                                 <label className="block text-sm font-medium mb-2">Email *</label>
                                 <input
                                     name="email"
-                                    value={formData.email}
+                                    value={userEmail || formData.email}
                                     onChange={handleInputChange}
-                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    readOnly
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors cursor-not-allowed opacity-70"
                                     placeholder="johndoe@example.com"
                                     required
                                 />
+                                <small className="text-gray-400 text-xs mt-1">
+                                    Email is automatically filled from your account and cannot be changed
+                                </small>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -1127,20 +1372,27 @@ export default function Page() {
 
                                     {/* Status Filters */}
                                     <div className="flex flex-wrap gap-2 mb-4">
-                                        <button className="text-cyan-400 text-sm font-medium border-b-2 border-cyan-400 pb-1">
-                                            All ({customRemovals.length})
+                                        <button
+                                            onClick={() => setActiveRemovalTab('all')}
+                                            className={`text-sm font-medium pb-1 px-2 transition-colors ${activeRemovalTab === 'all'
+                                                ? 'text-cyan-400 border-b-2 border-cyan-400'
+                                                : 'text-gray-400 hover:text-white'
+                                                }`}
+                                        >
+                                            All ({customRemovals?.length || 0})
                                         </button>
-                                        <button className="text-gray-400 text-sm font-medium hover:text-white transition-colors pb-1">
-                                            Submitted ({customRemovals.filter(item => item.status === "Submitted").length})
-                                        </button>
-                                        <button className="text-gray-400 text-sm font-medium hover:text-white transition-colors pb-1">
-                                            In Progress ({customRemovals.filter(item => item.status === "In Progress").length})
-                                        </button>
-                                        <button className="text-gray-400 text-sm font-medium hover:text-white transition-colors pb-1">
-                                            Removed ({customRemovals.filter(item => item.status === "Removed").length})
-                                        </button>
-                                        <button className="text-gray-400 text-sm font-medium hover:text-white transition-colors pb-1">
-                                            Rejected ({customRemovals.filter(item => item.status === "Rejected").length})
+                                        <button
+                                            onClick={() => setActiveRemovalTab('in-progress')}
+                                            className={`text-sm font-medium pb-1 px-2 transition-colors ${activeRemovalTab === 'in-progress'
+                                                ? 'text-cyan-400 border-b-2 border-cyan-400'
+                                                : 'text-gray-400 hover:text-white'
+                                                }`}
+                                        >
+                                            In Process ({customRemovals?.filter(item => {
+                                                if (!item?.status) return false;
+                                                const status = String(item.status).toLowerCase();
+                                                return status.includes("progress") || status.includes("in_progress") || status === "in progress" || status === "submitted";
+                                            }).length || 0})
                                         </button>
                                     </div>
 
@@ -1150,47 +1402,67 @@ export default function Page() {
                                             <div className="flex justify-center py-8">
                                                 <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
                                             </div>
-                                        ) : customRemovals.length === 0 ? (
+                                        ) : !getFilteredRemovals() || getFilteredRemovals().length === 0 ? (
                                             <div className="text-center py-8 text-gray-400">
                                                 <FileText size={48} className="mx-auto mb-3 opacity-50" />
-                                                <p>No custom removal requests yet</p>
+                                                <p>No {activeRemovalTab !== 'all' ? 'in process' : ''} removal requests found</p>
                                             </div>
                                         ) : (
-                                            customRemovals.map((item) => (
-                                                <div key={item.issue_id} className="border border-[#0F3A52] rounded-lg p-4 hover:border-cyan-500/30 transition-colors">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <span className="text-cyan-400 font-mono text-sm">{item.issue_id}</span>
-                                                        {getStatusBadge(item.status)}
-                                                    </div>
-                                                    <p className="text-white text-sm mb-2 truncate">{item.exposed_url}</p>
-                                                    <p className="text-gray-400 text-xs">
-                                                        Submitted: {new Date(item.submitted_at).toLocaleDateString()}
-                                                    </p>
-                                                    {item.data_exposure_image && (
-                                                        <div className="mt-2">
-                                                            <img
-                                                                src={item.data_exposure_image}
-                                                                alt="Exposure proof"
-                                                                className="w-20 h-20 object-cover rounded border border-[#0F3A52]"
-                                                            />
+                                            getFilteredRemovals().map((item) => (
+                                                item && item.issue_id ? (
+                                                    <div key={item.issue_id} className="border border-[#0F3A52] rounded-lg p-4 hover:border-cyan-500/30 transition-colors">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <span className="text-cyan-400 font-mono text-sm"><span className="font-semibold">ID:</span>{item.issue_id}</span>
+                                                            {getStatusBadge(item.status)}
                                                         </div>
-                                                    )}
-                                                </div>
-                                            ))
+                                                        <p className="text-white text-sm mb-2 break-words"><span className="font-semibold">Exposed URL:</span> {item.exposed_url}</p>
+                                                        <p className="text-gray-400 text-xs">
+                                                            Submitted: {item.submitted_at ? new Date(item.submitted_at).toLocaleDateString() : 'Unknown date'}
+                                                        </p>
+                                                        {item.data_exposure_image && (
+                                                            <div className="mt-3 p-3 bg-[#0A1E2E] rounded-lg border border-[#0F3A52]">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <span className="text-cyan-400 text-sm font-medium">Proof Image</span>
+                                                                    <div className="flex gap-2">
+                                                                        {/* Download Button */}
+                                                                        <button
+                                                                            onClick={() => downloadImage(item.data_exposure_image, `proof-${item.issue_id}.png`)}
+                                                                            className="flex items-center gap-1 bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 text-xs px-2 py-1 rounded border border-cyan-500/30 transition-colors"
+                                                                            title="Download image"
+                                                                        >
+                                                                            <Download size={12} />
+                                                                            Download
+                                                                        </button>
+                                                                        {/* View Button */}
+                                                                        <button
+                                                                            onClick={() => window.open(item.data_exposure_image, '_blank')}
+                                                                            className="flex items-center gap-1 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 text-xs px-2 py-1 rounded border border-blue-500/30 transition-colors"
+                                                                            title="View image"
+                                                                        >
+                                                                            <Eye size={12} />
+                                                                            View
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                <img
+                                                                    src={item.data_exposure_image}
+                                                                    alt="Exposure proof"
+                                                                    className="w-full h-32 object-contain rounded border border-[#0F3A52] bg-black/20"
+                                                                    onError={(e) => {
+                                                                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x120/0B2233/0ABF9D?text=Image+Not+Available';
+                                                                    }}
+                                                                />
+                                                                <p className="text-cyan-400 text-xs mt-2 text-center">
+                                                                    ↓ Download image first, then drag & drop local file ↓
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : null
+                                            )).filter(Boolean)
                                         )}
                                     </div>
                                 </div>
-
-                                {/* Exclusive Feature Notice */}
-                                {/* <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-purple-400 mb-2">
-                                        <Info size={16} />
-                                        <span className="font-semibold">EXCLUSIVE FEATURE FOR ULTIMATE SUBSCRIPTION</span>
-                                    </div>
-                                    <p className="text-gray-300 text-sm">
-                                        Submit custom requests for additional data broker profiles not already covered by the Ultimate plan.
-                                    </p>
-                                </div> */}
                             </div>
 
                             {/* Right Side - Submit New Request */}
@@ -1218,33 +1490,87 @@ export default function Page() {
                                     </div>
 
                                     {/* Proof of Exposure */}
+                                    {/* Proof of Exposure - Local File Upload Only */}
                                     <div>
                                         <label className="block text-white text-sm font-medium mb-2">
                                             Proof of your data exposure *
                                         </label>
-                                        <div className="border-2 border-dashed border-cyan-400/30 rounded-lg p-6 text-center hover:border-cyan-400/50 transition-colors">
+                                        <div
+                                            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
+            ${isDragOver ? 'border-cyan-400 bg-cyan-400/20' : 'border-cyan-400/30 hover:border-cyan-400/50'}
+            ${proofFile ? 'border-green-400 bg-green-400/10' : ''}
+            min-h-[200px] flex items-center justify-center
+        `}
+                                            onDragOver={(e) => {
+                                                e.preventDefault();
+                                                setIsDragOver(true);
+                                            }}
+                                            onDragLeave={(e) => {
+                                                e.preventDefault();
+                                                setIsDragOver(false);
+                                            }}
+                                            onDrop={handleDrop}
+                                            onClick={() => document.getElementById('proof-file')?.click()}
+                                        >
                                             <input
                                                 type="file"
-                                                accept="image/jpeg,image/png"
-                                                onChange={handleFileChange}
+                                                accept="image/jpeg,image/png,image/webp"
+                                                onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
                                                 className="hidden"
                                                 id="proof-file"
-                                                required
                                             />
-                                            <label htmlFor="proof-file" className="cursor-pointer">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <FileText size={32} className="text-cyan-400" />
-                                                    <span className="text-cyan-400 font-medium">Select file</span>
-                                                    <span className="text-gray-400 text-sm">or drag and drop here</span>
-                                                    <span className="text-gray-500 text-xs">JPG or PNG file size no more than 10MB</span>
-                                                </div>
-                                            </label>
+                                            <div className="flex flex-col items-center gap-3">
+                                                {proofFile ? (
+                                                    <>
+                                                        <div className="w-20 h-20 relative">
+                                                            <img
+                                                                src={URL.createObjectURL(proofFile)}
+                                                                alt="Preview"
+                                                                className="w-full h-full object-cover rounded-lg border border-cyan-400/30"
+                                                            />
+                                                            <div className="absolute inset-0 bg-green-400/20 rounded-lg flex items-center justify-center">
+                                                                <div className="w-10 h-10 bg-green-400 rounded-full flex items-center justify-center">
+                                                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-green-400 font-medium">Image uploaded successfully!</span>
+                                                        <span className="text-gray-400 text-sm">{proofFile.name}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setProofFile(null);
+                                                            }}
+                                                            className="text-red-400 text-sm hover:text-red-300 transition-colors px-3 py-1 border border-red-400/30 rounded"
+                                                        >
+                                                            Remove Image
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FileText size={48} className="text-cyan-400 mb-2" />
+                                                        <div className="text-center">
+                                                            <span className="text-cyan-400 font-medium block">Upload proof image</span>
+                                                            <span className="text-gray-400 text-sm block mt-1">Drag & drop local file or click to select</span>
+                                                            <div className="mt-3 p-2 bg-cyan-400/10 rounded border border-cyan-400/20">
+                                                                <p className="text-cyan-400 text-xs font-medium">How to use:</p>
+                                                                <ol className="text-gray-400 text-xs text-left mt-1 space-y-1">
+                                                                    <li>1. Click "Download" on left side image</li>
+                                                                    <li>2. Save image to your computer</li>
+                                                                    <li>3. Drag & drop the saved file here</li>
+                                                                </ol>
+                                                            </div>
+                                                        </div>
+                                                        {isDragOver && (
+                                                            <span className="text-cyan-400 text-sm animate-pulse mt-2">Drop local image file here...</span>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
-                                        {proofFile && (
-                                            <p className="text-green-400 text-sm mt-2">
-                                                Selected: {proofFile.name}
-                                            </p>
-                                        )}
                                     </div>
 
                                     {/* Search Engine URL */}
@@ -1298,8 +1624,8 @@ export default function Page() {
                                         type="submit"
                                         disabled={submittingRemoval}
                                         className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 transform ${submittingRemoval
-                                                ? "bg-gray-600 cursor-not-allowed"
-                                                : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 hover:scale-[1.02]"
+                                            ? "bg-gray-600 cursor-not-allowed"
+                                            : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 hover:scale-[1.02]"
                                             } text-white`}
                                     >
                                         {submittingRemoval ? (
