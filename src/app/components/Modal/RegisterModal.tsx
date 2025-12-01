@@ -89,8 +89,8 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
             setStep(2);
             setCountdown(59);
             setCanResend(false);
-        } catch (error: any) {
-            setMessage(error.message || "Failed to register. Please try again.");
+        } catch (error) {
+            setMessage((error instanceof Error ? error.message : String(error)) || "Failed to register. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -119,8 +119,8 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                 setCountdown(59);
                 setCanResend(false);
                 setMessage("Verification code sent successfully!");
-            } catch (error: any) {
-                setMessage(error.message || "Failed to resend code.");
+            } catch (error) {
+                setMessage((error instanceof Error ? error.message : String(error)) || "Failed to resend code.");
             } finally {
                 setLoading(false);
             }
@@ -150,8 +150,8 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
                 otp: code
             });
             setStep(3);
-        } catch (error: any) {
-            setMessage(error.message || "Invalid verification code.");
+        } catch (error) {
+            setMessage((error instanceof Error ? error.message : String(error)) || "Invalid verification code.");
         } finally {
             setLoading(false);
         }

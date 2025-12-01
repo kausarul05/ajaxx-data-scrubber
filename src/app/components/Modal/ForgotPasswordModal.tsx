@@ -69,8 +69,8 @@ export default function ForgotPasswordModal({ onClose }: Props) {
       setCurrentStep("verification");
       setCountdown(59);
       setCanResend(false);
-    } catch (error: any) {
-      setMessage(error.message || "Failed to send verification code.");
+    } catch (error) {
+      setMessage((error instanceof Error ? error.message : String(error)) || "Failed to send verification code.");
     } finally {
       setLoading(false);
     }
@@ -92,8 +92,9 @@ export default function ForgotPasswordModal({ onClose }: Props) {
         otp: code
       });
       setCurrentStep("newPassword");
-    } catch (error: any) {
-      setMessage(error.message || "Invalid verification code.");
+    } catch (error) {
+      // setMessage(error.message || "Invalid verification code.");
+      setMessage((error instanceof Error ? error.message : String(error)) || "Invalid verification code.");
     } finally {
       setLoading(false);
     }
@@ -125,8 +126,8 @@ export default function ForgotPasswordModal({ onClose }: Props) {
       });
       toast.success("Password reset successfully!");
       setCurrentStep("success");
-    } catch (error: any) {
-      setMessage(error.message || "Failed to reset password.");
+    } catch (error) {
+      setMessage((error instanceof Error ? error.message : String(error)) || "Failed to reset password.");
     } finally {
       setLoading(false);
     }
@@ -141,8 +142,8 @@ export default function ForgotPasswordModal({ onClose }: Props) {
         setCountdown(59);
         setCanResend(false);
         setMessage("Verification code sent successfully!");
-      } catch (error: any) {
-        setMessage(error.message || "Failed to resend code.");
+      } catch (error) {
+        setMessage((error instanceof Error ? error.message : String(error)) || "Failed to resend code.");
       } finally {
         setLoading(false);
       }

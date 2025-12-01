@@ -80,15 +80,35 @@ export default function HistoryPage() {
                 setLoading(false);
                 return;
             }
-            const user = JSON.parse(userInfo);
+            
             try {
+                const user = JSON.parse(userInfo);
                 setLoading(true);
                 setError(null);
-                const data: ApiResponse = await apiRequest(
+                
+                // Use the generic type parameter with apiRequest
+                const response = await apiRequest<ApiResponse>(
                     "GET", 
                     `/data/optery/history/${user?.email}`
                 );
-                setHistoryData(data.history);
+                
+                // Extract the data from the response
+                // The response could be either the data directly or wrapped in a data property
+                let data: ApiResponse;
+                
+                if (response && typeof response === 'object' && 'history' in response) {
+                    // Response is already the ApiResponse type
+                    data = response as unknown as ApiResponse;
+                } else if (response && typeof response === 'object' && 'data' in response) {
+                    // Response is wrapped in a data property
+                    const wrappedResponse = response as unknown as { data?: ApiResponse };
+                    data = wrappedResponse.data || { history: [] };
+                } else {
+                    // Fallback: assume it's the history array directly
+                    data = { history: response as unknown as HistoryItem[] };
+                }
+                
+                setHistoryData(data.history || []);
             } catch (err) {
                 setError("Failed to load history data");
                 console.error("Error fetching history:", err);

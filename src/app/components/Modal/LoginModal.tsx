@@ -5,6 +5,50 @@ import { X, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { apiRequest } from "@/app/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 
+interface GoogleTokenResponse {
+    access_token: string;
+    id_token?: string;
+    scope: string;
+    expires_in: number;
+    token_type: string;
+    [key: string]: unknown; // For any other properties Google might add
+}
+
+interface GoogleUserInfo {
+    sub: string;
+    email: string;
+    name: string;
+    picture?: string;
+    [key: string]: unknown; // For any other properties Google might return
+}
+
+interface GoogleAuthResult {
+    idToken: string;
+    accessToken: string;
+}
+
+interface GoogleAccounts {
+    oauth2: {
+        initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            callback: (response: GoogleTokenResponse) => void;
+            error_callback: (error: unknown) => void;
+        }) => {
+            requestAccessToken: () => void;
+        };
+    };
+}
+
+// Extend Window interface to include Google accounts
+declare global {
+    interface Window {
+        google?: {
+            accounts: GoogleAccounts;
+        };
+    }
+}
+
 type Props = {
     onClose: () => void;
     onSwitchToRegister: () => void;
@@ -65,7 +109,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                     if (response.access || response.user) {
                         // Store token and user data
                         if (response.access) {
-                            localStorage.setItem("authToken", response.access);
+                            localStorage.setItem("authToken", String(response.access));
                         }
 
                         if (response.user) {
@@ -83,9 +127,13 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                     } else {
                         setError(response.message || "Google login failed. Please try again.");
                     }
-                } catch (err: any) {
+                } catch (err) {
                     console.log("Google login error:", err);
-                    setError(err?.error || "Google authentication failed. Please try again.");
+                    setError(
+                        (typeof err === "object" && err !== null && "message" in err)
+                            ? (err as { message?: string }).message || "Google authentication failed. Please try again."
+                            : "Google authentication failed. Please try again."
+                    );
                 } finally {
                     setGoogleLoading(false);
                     // Clean URL
@@ -167,7 +215,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
 
                 // Store token and user data
                 if (data.access) {
-                    localStorage.setItem("authToken", data.access);
+                    localStorage.setItem("authToken", String(data.access));
                     document.cookie = `authToken=${data.access}; path=/; SameSite=Lax`;
                 }
 
@@ -191,11 +239,12 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
             } else {
                 setError(data.message || "Login failed. Please check your credentials.");
             }
-        } catch (err: any) {
-            console.log("Login error:", err?.error);
+        } catch (err) {
+            const errorObj = err as { error?: string; message?: string };
+            console.log("Login error:", errorObj?.error || errorObj?.message || err);
             // Handle specific error messages from your API
             if (err) {
-                setError(err?.error);
+                setError(errorObj?.error || errorObj?.message || "Login failed. Please try again.");
             }
         } finally {
             setIsLoading(false);
@@ -236,7 +285,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                 if (response.access || response.user) {
                     // Store token and user data
                     if (response.access) {
-                        localStorage.setItem("authToken", response.access);
+                        localStorage.setItem("authToken", String(response.access));
                         document.cookie = `authToken=${response.access}; path=/; SameSite=Lax`;
                     }
 
@@ -256,9 +305,13 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                     setError(response.message || "Google login failed. Please try again.");
                 }
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error("Google login error:", err);
-            setError(err?.message || "Google authentication failed. Please try again.");
+            setError(
+                (typeof err === "object" && err !== null && "message" in err)
+                    ? (err as { message?: string }).message || "Google authentication failed. Please try again."
+                    : "Google authentication failed. Please try again."
+            );
         } finally {
             setGoogleLoading(false);
         }
@@ -283,16 +336,19 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
         });
     };
 
-    const handleGoogleAuth = (): Promise<{ idToken: string; accessToken: string }> => {
+    const handleGoogleAuth = (): Promise<GoogleAuthResult> => {
         return new Promise((resolve, reject) => {
-            const client = (window as any).google.accounts.oauth2.initTokenClient({
+            // Check if Google API is available
+            if (!window.google?.accounts?.oauth2) {
+                reject(new Error('Google OAuth2 client is not available'));
+                return;
+            }
+
+            const client = window.google.accounts.oauth2.initTokenClient({
                 client_id: '200786604966-c92h7dbqfuj3h69bie70nq4atflk6u8m.apps.googleusercontent.com',
                 scope: 'email profile openid',
-                callback: async (response: any) => {
+                callback: async (response: GoogleTokenResponse) => {
                     if (response.access_token) {
-                        console.log("FUll Response Kausarrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", response)
-                        console.log("Access token received:", response.access_token);
-                        console.log("ID token received xxxxxxxxxxxxxxx:", response);
                         try {
                             // Get user info to obtain ID token
                             const userInfoResponse = await fetch(
@@ -309,22 +365,28 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                                 return;
                             }
 
-                            const userInfo = await userInfoResponse.json();
-                            console.log("User info: mamunnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn vai", userInfo);
+                            const userInfo = await userInfoResponse.json() as GoogleUserInfo;
+                            console.log("User info:", userInfo);
+
+                            // Ensure we have an id_token
+                            if (!response.id_token) {
+                                reject(new Error('ID token not received from Google'));
+                                return;
+                            }
 
                             resolve({
-                                idToken: response.id_token, // Use access token as ID token
+                                idToken: response.id_token,
                                 accessToken: response.access_token
                             });
-                        } catch (error) {
-                            reject(error);
+                        } catch (error: unknown) {
+                            reject(error instanceof Error ? error : new Error('Unknown error occurred'));
                         }
                     } else {
                         reject(new Error('Failed to get access token'));
                     }
                 },
-                error_callback: (error: any) => {
-                    reject(error);
+                error_callback: (error: unknown) => {
+                    reject(error instanceof Error ? error : new Error('Google authentication error'));
                 }
             });
             client.requestAccessToken();
@@ -359,93 +421,97 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
     };
 
     // Method 3: Popup window with message passing (Alternative)
-    const handleGoogleLoginPopupWindow = () => {
-        setGoogleLoading(true);
-        setError("");
-        setSuccess("");
+    // const handleGoogleLoginPopupWindow = () => {
+    //     setGoogleLoading(true);
+    //     setError("");
+    //     setSuccess("");
 
-        const clientId = '784899934774-rcpd51tom6fgq54m0bitd2pcbe193tlg.apps.googleusercontent.com';
-        const redirectUri = `${window.location.origin}/auth-handler.html`; // You need to create this file
-        const scope = 'email profile openid';
+    //     const clientId = '784899934774-rcpd51tom6fgq54m0bitd2pcbe193tlg.apps.googleusercontent.com';
+    //     const redirectUri = `${window.location.origin}/auth-handler.html`; // You need to create this file
+    //     const scope = 'email profile openid';
 
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-            `client_id=${clientId}` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&response_type=token` +
-            `&scope=${encodeURIComponent(scope)}` +
-            `&include_granted_scopes=true` +
-            `&prompt=consent`;
+    //     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    //         `client_id=${clientId}` +
+    //         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    //         `&response_type=token` +
+    //         `&scope=${encodeURIComponent(scope)}` +
+    //         `&include_granted_scopes=true` +
+    //         `&prompt=consent`;
 
-        // Open popup window
-        const popup = window.open(authUrl, 'googleAuth', 'width=500,height=600,left=100,top=100');
+    //     // Open popup window
+    //     const popup = window.open(authUrl, 'googleAuth', 'width=500,height=600,left=100,top=100');
 
-        // Check for popup block
-        if (!popup) {
-            setError("Popup blocked! Please allow popups for this site and try again.");
-            setGoogleLoading(false);
-            return;
-        }
+    //     // Check for popup block
+    //     if (!popup) {
+    //         setError("Popup blocked! Please allow popups for this site and try again.");
+    //         setGoogleLoading(false);
+    //         return;
+    //     }
 
-        // Listen for message from popup
-        const messageHandler = async (event: MessageEvent) => {
-            // Security check - verify origin
-            if (event.origin !== window.location.origin) return;
+    //     // Listen for message from popup
+    //     const messageHandler = async (event: MessageEvent) => {
+    //         // Security check - verify origin
+    //         if (event.origin !== window.location.origin) return;
 
-            if (event.data.type === 'google-auth-success' && event.data.token) {
-                window.removeEventListener('message', messageHandler);
-                popup.close();
+    //         if (event.data.type === 'google-auth-success' && event.data.token) {
+    //             window.removeEventListener('message', messageHandler);
+    //             popup.close();
 
-                try {
-                    const response = await apiRequest("POST", "/accounts/auth/google/", {
-                        access_token: event.data.token
-                    });
+    //             try {
+    //                 const response = await apiRequest("POST", "/accounts/auth/google/", {
+    //                     access_token: event.data.token
+    //                 });
 
-                    if (response.access) {
-                        localStorage.setItem("authToken", response.access);
-                        localStorage.setItem("userData", JSON.stringify(response.user));
-                        setSuccess("Google login successful!");
+    //                 if (response.access) {
+    //                     localStorage.setItem("authToken", response.access);
+    //                     localStorage.setItem("userData", JSON.stringify(response.user));
+    //                     setSuccess("Google login successful!");
 
-                        setTimeout(() => {
-                            router.push('/dashboard');
-                            onClose();
-                        }, 1000);
-                    } else {
-                        setError(response.message || "Google login failed.");
-                    }
-                } catch (err: any) {
-                    setError(err?.error || "Authentication failed.");
-                } finally {
-                    setGoogleLoading(false);
-                }
-            }
+    //                     setTimeout(() => {
+    //                         router.push('/dashboard');
+    //                         onClose();
+    //                     }, 1000);
+    //                 } else {
+    //                     setError(response.message || "Google login failed.");
+    //                 }
+    //             } catch (err) {
+    //                 setError(
+    //                     (typeof err === "object" && err !== null && "message" in err)
+    //                         ? (err as { message?: string }).message || "Authentication failed."
+    //                         : "Authentication failed."
+    //                 );
+    //             } finally {
+    //                 setGoogleLoading(false);
+    //             }
+    //         }
 
-            if (event.data.type === 'google-auth-error') {
-                window.removeEventListener('message', messageHandler);
-                popup.close();
-                setError(event.data.error);
-                setGoogleLoading(false);
-            }
+    //         if (event.data.type === 'google-auth-error') {
+    //             window.removeEventListener('message', messageHandler);
+    //             popup.close();
+    //             setError(event.data.error);
+    //             setGoogleLoading(false);
+    //         }
 
-            if (event.data.type === 'google-auth-closed') {
-                window.removeEventListener('message', messageHandler);
-                setGoogleLoading(false);
-            }
-        };
+    //         if (event.data.type === 'google-auth-closed') {
+    //             window.removeEventListener('message', messageHandler);
+    //             setGoogleLoading(false);
+    //         }
+    //     };
 
-        window.addEventListener('message', messageHandler);
+    //     window.addEventListener('message', messageHandler);
 
-        // Check if popup is closed by user
-        const checkPopup = setInterval(() => {
-            if (popup.closed) {
-                clearInterval(checkPopup);
-                window.removeEventListener('message', messageHandler);
-                if (googleLoading) {
-                    setGoogleLoading(false);
-                    setError("Login cancelled by user.");
-                }
-            }
-        }, 500);
-    };
+    //     // Check if popup is closed by user
+    //     const checkPopup = setInterval(() => {
+    //         if (popup.closed) {
+    //             clearInterval(checkPopup);
+    //             window.removeEventListener('message', messageHandler);
+    //             if (googleLoading) {
+    //                 setGoogleLoading(false);
+    //                 setError("Login cancelled by user.");
+    //             }
+    //         }
+    //     }, 500);
+    // };
 
     // Combined Google login handler - tries popup first, falls back to redirect
     const handleGoogleLogin = async () => {

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import Image from 'next/image';
 import {
     Eye,
     Trash2,
@@ -13,26 +14,19 @@ import {
     Download,
     ExternalLink,
     FileText,
-    Info,
     Plus,
     Search
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-type ServiceData = {
-    fullName: string;
-    email: string;
-    phone: string;
-    creationDate: string;
-    time: string;
-};
-
-type Service = {
-    id: number;
-    name: string;
-    icon: string;
-    data: ServiceData;
-};
+// Remove unused type
+// type ServiceData = {
+//     fullName: string;
+//     email: string;
+//     phone: string;
+//     creationDate: string;
+//     time: string;
+// };
 
 type PlanData = {
     id: number;
@@ -173,14 +167,14 @@ export default function Page() {
         address_line2: "",
         zipcode: ""
     });
-    const [formSubmitted, setFormSubmitted] = useState(false);
+    const [, setFormSubmitted] = useState(false); // Mark as unused
     const [loading, setLoading] = useState(false);
     const [planLoading, setPlanLoading] = useState(true);
     const [currentPlan, setCurrentPlan] = useState<SubscriptionData | null>(null);
     const [scanData, setScanData] = useState<ScanResponse | null>(null);
     const [scanLoading, setScanLoading] = useState(false);
     const [memberData, setMemberData] = useState<MemberDataResponse | null>(null);
-    const [checkingMemberData, setCheckingMemberData] = useState(false);
+    const [, setCheckingMemberData] = useState(false); // Mark as unused
     const [userEmail, setUserEmail] = useState(""); // Store logged in user's email
 
     const [showCustomRemovalModal, setShowCustomRemovalModal] = useState(false);
@@ -206,11 +200,9 @@ export default function Page() {
         const getUserEmail = () => {
             // Get email from localStorage userInfo
             const userInfo = localStorage.getItem("userData");
-            // console.log(userInfo?.email)
             if (userInfo) {
                 try {
                     const user = JSON.parse(userInfo);
-                    // console.log(user?.email)
                     if (user.email) {
                         setUserEmail(user.email);
                         setFormData(prev => ({ ...prev, email: user.email }));
@@ -223,20 +215,15 @@ export default function Page() {
             // If no user info in localStorage, try auth token or other sources
             const token = localStorage.getItem("authToken");
             if (token && !userEmail) {
-                // You might need to decode JWT token or call user profile API
-                // For now, we'll set a placeholder
-                // setUserEmail("user@example.com"); // Replace with actual logic
                 setFormData(prev => ({ ...prev, email: "user@example.com" }));
             }
         };
 
         getUserEmail();
-        checkMemberData();
-    }, [memberUUID]);
+    }, [userEmail]); // Add userEmail to dependencies
 
-    // Check member data from API - ALWAYS check the API regardless of localStorage
-    // Check member data from API - ALWAYS check the API regardless of localStorage
-    const checkMemberData = async () => {
+    // Check member data from API
+    const checkMemberData = useCallback(async () => {
         try {
             setCheckingMemberData(true);
 
@@ -250,9 +237,9 @@ export default function Page() {
             }
 
             const user = JSON.parse(userInfo);
-            const userEmail = user.email;
+            const currentUserEmail = user.email;
 
-            if (!userEmail) {
+            if (!currentUserEmail) {
                 console.log("No email found in user info");
                 setMemberData(null);
                 setFormSubmitted(false);
@@ -260,7 +247,7 @@ export default function Page() {
             }
 
             // Use email from localStorage in the API endpoint
-            const response = await fetch(`http://10.10.10.46:8000/data/api/optery-members/${userEmail}/`, {
+            const response = await fetch(`http://10.10.10.46:8000/data/api/optery-members/${currentUserEmail}/`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -294,16 +281,15 @@ export default function Page() {
         } finally {
             setCheckingMemberData(false);
         }
-    };
+    }, []); // Make this a useCallback
+
+    // Call checkMemberData on component mount
+    useEffect(() => {
+        checkMemberData();
+    }, [checkMemberData]);
 
     // Fetch custom removals when modal opens
-    useEffect(() => {
-        if (showCustomRemovalModal) {
-            fetchCustomRemovals();
-        }
-    }, [showCustomRemovalModal]);
-
-    const fetchCustomRemovals = async () => {
+    const fetchCustomRemovals = useCallback(async () => {
         const memberUuid = localStorage.getItem("uuid");
         if (!memberUuid) {
             toast.error("No member UUID found.");
@@ -332,9 +318,15 @@ export default function Page() {
         } finally {
             setCustomRemovalsLoading(false);
         }
-    };
+    }, [memberUUID]); // Add memberUUID to dependencies
 
-    const handleRemove = (databrokerUuid: string, databrokerName: string) => {
+    useEffect(() => {
+        if (showCustomRemovalModal) {
+            fetchCustomRemovals();
+        }
+    }, [showCustomRemovalModal, fetchCustomRemovals]); // Add fetchCustomRemovals to dependencies
+
+    const handleRemove = () => { // Remove unused parameters
         setShowCustomRemovalModal(true);
     };
 
@@ -416,7 +408,7 @@ export default function Page() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
+           await response.json();
             toast.success("Custom removal request submitted successfully!");
 
             // Reset form
@@ -448,22 +440,6 @@ export default function Page() {
         }));
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            // Check file type and size
-            if (!file.type.startsWith('image/')) {
-                toast.error("Please select an image file (JPG or PNG).");
-                return;
-            }
-            if (file.size > 10 * 1024 * 1024) { // 10MB
-                toast.error("File size must be less than 10MB.");
-                return;
-            }
-            setProofFile(file);
-        }
-    };
-
     const downloadImage = async (imageUrl: string, filename: string) => {
         try {
             // Try direct download first
@@ -492,7 +468,6 @@ export default function Page() {
             console.error('Error downloading image:', error);
 
             // Fallback: Open in new tab for manual download
-            // toast.info('Opening image in new tab for manual download...');
             const newTab = window.open(imageUrl, '_blank');
             if (!newTab) {
                 toast.error('Please allow popups to download the image');
@@ -573,7 +548,7 @@ export default function Page() {
     };
 
     // Function to get status badge color
-    const getStatusBadge = (status: any) => {
+    const getStatusBadge = (status: string | number) => {
         const statusString = String(status || "submitted").toLowerCase();
 
         const statusConfig: { [key: string]: { color: string; bgColor: string } } = {
@@ -597,7 +572,7 @@ export default function Page() {
     };
 
     // Function to get data type badges
-    const getDataBadges = (databrokerData: any) => {
+    const getDataBadges = (databrokerData: Screenshot['databroker_data']) => {
         const badges = [];
         if (databrokerData.has_name_data) badges.push("Name");
         if (databrokerData.has_address_data) badges.push("Address");
@@ -629,13 +604,6 @@ export default function Page() {
     };
 
     const startDataScan = async () => {
-        // const memberUuid = localStorage.getItem("uuid");
-
-        // if (!memberUuid) {
-        //     toast.error("No member UUID found. Please submit the form first.");
-        //     return;
-        // }
-
         try {
             setScanLoading(true);
             setClicked(true);
@@ -713,18 +681,6 @@ export default function Page() {
         });
     };
 
-    // Handle drag start from left side images
-    const handleDragStart = (e: React.DragEvent, imageUrl: string) => {
-        e.dataTransfer.setData('text/plain', imageUrl);
-        setDraggedImage(imageUrl);
-    };
-
-    // Handle drag over on right side drop zone
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragOver(true);
-    };
-
     // Handle drop on right side - Simplified version
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
@@ -739,25 +695,6 @@ export default function Page() {
                 toast.error("Please drop an image file (JPG, PNG, WebP)");
             }
         }
-    };
-
-    const handleImageUrlSelect = (imageUrl: string) => {
-        // Create a mock file object from the URL
-        const fileName = imageUrl.split('/').pop()?.split('?')[0] || 'screenshot.png';
-
-        // Create a simple file-like object
-        const mockFile = new File([], fileName, {
-            type: 'image/png',
-            lastModified: new Date().getTime()
-        });
-
-        // Store both the file and the original URL
-        setProofFile(mockFile);
-
-        // Store the image URL separately for display
-        setDraggedImage(imageUrl);
-
-        toast.success("Image added from existing request!");
     };
 
     const handleSubmitForm = async (e: React.FormEvent) => {
@@ -846,14 +783,6 @@ export default function Page() {
 
     const closeFormModal = () => {
         setShowFormModal(false);
-    };
-
-    const downloadReport = () => {
-        if (scanData?.scans[0]?.report_pdf) {
-            window.open(scanData.scans[0].report_pdf, '_blank');
-        } else {
-            toast.error("No report available for download");
-        }
     };
 
     // Get all screenshots from the API response
@@ -986,7 +915,7 @@ export default function Page() {
                                         <span className="hidden sm:inline">View</span>
                                     </button>
                                     <button
-                                        onClick={() => handleRemove(screenshot.databroker_uuid, screenshot.databroker_name)}
+                                        onClick={() => handleRemove()}
                                         className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm px-3 sm:px-4 py-1.5 rounded-md transition-all duration-300 transform hover:scale-105"
                                     >
                                         <Trash2 size={16} />
@@ -1056,13 +985,16 @@ export default function Page() {
                             {/* Screenshot Image */}
                             <div className="space-y-4">
                                 <h4 className="text-white font-medium">Screenshot</h4>
-                                <div className="border border-[#0F3A52] rounded-lg overflow-hidden">
-                                    <img
-                                        src={selectedService.image}
+                                <div className="border border-[#0F3A52] rounded-lg overflow-hidden relative w-full h-64">
+                                    <Image
+                                        src={selectedService.image || '/placeholder-image.png'}
                                         alt={`${selectedService.databroker_name} screenshot`}
-                                        className="w-full h-auto object-contain"
+                                        fill
+                                        className="object-contain"
+                                        sizes="(max-width: 768px) 100vw, 50vw"
                                         onError={(e) => {
-                                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/600x400/0B2233/0ABF9D?text=Screenshot+Not+Available';
+                                            const target = e.target as HTMLImageElement;
+                                            target.src = 'https://via.placeholder.com/600x400/0B2233/0ABF9D?text=Screenshot+Not+Available';
                                         }}
                                     />
                                 </div>
@@ -1377,7 +1309,7 @@ export default function Page() {
                                 </p>
                             </div>
                             <button
-                                // onClick={closeCustomRemovalModal}
+                                onClick={() => setShowCustomRemovalModal(false)}
                                 className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
                             >
                                 <X size={24} />
@@ -1432,7 +1364,7 @@ export default function Page() {
                                                 item && item.issue_id ? (
                                                     <div key={item.issue_id} className="border border-[#0F3A52] rounded-lg p-4 hover:border-cyan-500/30 transition-colors">
                                                         <div className="flex justify-between items-start mb-2">
-                                                            <span className="text-cyan-400 font-mono text-sm"><span className="font-semibold">ID:</span>{item.issue_id}</span>
+                                                            <span className="text-cyan-400 font-mono text-sm"><span className="font-semibold">ID:</span> {item.issue_id}</span>
                                                             {getStatusBadge(item.status)}
                                                         </div>
                                                         <p className="text-white text-sm mb-2 break-words"><span className="font-semibold">Exposed URL:</span> {item.exposed_url}</p>
@@ -1464,14 +1396,19 @@ export default function Page() {
                                                                         </button>
                                                                     </div>
                                                                 </div>
-                                                                <img
-                                                                    src={item.data_exposure_image}
-                                                                    alt="Exposure proof"
-                                                                    className="w-full h-32 object-contain rounded border border-[#0F3A52] bg-black/20"
-                                                                    onError={(e) => {
-                                                                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x120/0B2233/0ABF9D?text=Image+Not+Available';
-                                                                    }}
-                                                                />
+                                                                <div className="relative w-full h-32">
+                                                                    <Image
+                                                                        src={item.data_exposure_image || '/placeholder-image.png'}
+                                                                        alt="Exposure proof"
+                                                                        fill
+                                                                        className="object-contain rounded border border-[#0F3A52] bg-black/20"
+                                                                        sizes="(max-width: 768px) 100vw, 50vw"
+                                                                        onError={(e) => {
+                                                                            const target = e.target as HTMLImageElement;
+                                                                            target.src = 'https://via.placeholder.com/300x120/0B2233/0ABF9D?text=Image+Not+Available';
+                                                                        }}
+                                                                    />
+                                                                </div>
                                                                 <p className="text-cyan-400 text-xs mt-2 text-center">
                                                                     ↓ Download image first, then drag & drop local file ↓
                                                                 </p>
@@ -1509,7 +1446,6 @@ export default function Page() {
                                         />
                                     </div>
 
-                                    {/* Proof of Exposure */}
                                     {/* Proof of Exposure - Local File Upload Only */}
                                     <div>
                                         <label className="block text-white text-sm font-medium mb-2">
@@ -1542,11 +1478,13 @@ export default function Page() {
                                             <div className="flex flex-col items-center gap-3">
                                                 {proofFile ? (
                                                     <>
-                                                        <div className="w-20 h-20 relative">
-                                                            <img
+                                                        <div className="relative w-20 h-20">
+                                                            <Image
                                                                 src={URL.createObjectURL(proofFile)}
                                                                 alt="Preview"
-                                                                className="w-full h-full object-cover rounded-lg border border-cyan-400/30"
+                                                                fill
+                                                                className="object-cover rounded-lg border border-cyan-400/30"
+                                                                sizes="80px"
                                                             />
                                                             <div className="absolute inset-0 bg-green-400/20 rounded-lg flex items-center justify-center">
                                                                 <div className="w-10 h-10 bg-green-400 rounded-full flex items-center justify-center">
@@ -1578,7 +1516,7 @@ export default function Page() {
                                                             <div className="mt-3 p-2 bg-cyan-400/10 rounded border border-cyan-400/20">
                                                                 <p className="text-cyan-400 text-xs font-medium">How to use:</p>
                                                                 <ol className="text-gray-400 text-xs text-left mt-1 space-y-1">
-                                                                    <li>1. Click "Download" on left side image</li>
+                                                                    <li>1. Click Download on left side image</li>
                                                                     <li>2. Save image to your computer</li>
                                                                     <li>3. Drag & drop the saved file here</li>
                                                                 </ol>

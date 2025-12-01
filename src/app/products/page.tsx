@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 import { apiRequest } from '@/app/lib/api';
 import Link from "next/link";
+import { easeInOut, easeOut, backOut } from "framer-motion";
 
 interface Product {
     id: number;
@@ -18,6 +19,15 @@ interface Product {
     dynamic_discount_percentage: number;
 }
 
+interface ApiResponse<T = unknown> {
+    results?: T[];
+    data?: {
+        data?: T[];
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+}
+
 export default function Products() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -28,9 +38,9 @@ export default function Products() {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
-                
-                const response = await apiRequest(
-                    "GET", 
+
+                const response = await apiRequest<ApiResponse<Product[]>>(
+                    "GET",
                     "/product/api/Product-all/",
                     null,
                     {
@@ -40,17 +50,38 @@ export default function Products() {
                     }
                 );
 
-                if (response) {
-                    const productsData = response.results || response.data.data || response.data;
-                    
-                    if (Array.isArray(productsData)) {
-                        setProducts(productsData);
-                    } else {
-                        setProducts([]);
+                let productsData: Product[] = [];
+
+                // Type guard to check if response is an object
+                if (response && typeof response === 'object') {
+                    const apiResponse = response as ApiResponse<Product[]>;
+
+                    // Check different possible response structures
+                    if (Array.isArray(apiResponse)) {
+                        // If the response is directly an array
+                        productsData = apiResponse;
+                    } else if (Array.isArray(apiResponse.results)) {
+                        // If response has 'results' array
+                        // Flatten if it's an array of arrays
+                        productsData = Array.isArray(apiResponse.results[0])
+                            ? (apiResponse.results as Product[][]).flat()
+                            : (apiResponse.results as unknown[]).flat() as Product[];
+                    } else if (apiResponse.data && Array.isArray(apiResponse.data)) {
+                        // If response has 'data' as array
+                        productsData = apiResponse.data;
+                    } else if (apiResponse.data && apiResponse.data.data && Array.isArray(apiResponse.data.data)) {
+                        // If response has nested 'data.data' as array
+                        productsData = (apiResponse.data.data as Product[][]).flat();
+                    } else if (apiResponse.data && typeof apiResponse.data === 'object' && 'data' in apiResponse.data) {
+                        // Additional check for nested data structure
+                        const nestedData = (apiResponse.data as Record<string, unknown>).data;
+                        if (Array.isArray(nestedData)) {
+                            productsData = nestedData;
+                        }
                     }
-                } else {
-                    setProducts([]);
                 }
+
+                setProducts(productsData);
             } catch (error) {
                 console.error("Failed to fetch products:", error);
                 setProducts([]);
@@ -73,15 +104,15 @@ export default function Products() {
             const oldPrice = parseFloat(product.old_price) || 0;
             const newPrice = parseFloat(product.new_price) || 0;
             const discountAmount = oldPrice - newPrice;
-            
+
             // Format prices with US$ prefix
             const formattedOldPrice = `US$ ${product.old_price}`;
             const formattedNewPrice = `US$ ${product.new_price}`;
             const formattedDiscount = `US$ ${Math.abs(discountAmount).toFixed(0)} OFF*`;
 
             // Split description into features (using new lines)
-            const features = product.description ? 
-                product.description.split('\n').filter(feature => feature.trim() !== '') : 
+            const features = product.description ?
+                product.description.split('\n').filter(feature => feature.trim() !== '') :
                 ["Premium protection features", "Secure data monitoring"];
 
             return {
@@ -116,28 +147,28 @@ export default function Products() {
             y: 0,
             scale: 1,
             rotateY: 0,
-            transition: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] },
+            transition: { duration: 0.8, ease: easeInOut },
         },
         hover: {
             y: -10,
             scale: 1.02,
             rotateY: 5,
             boxShadow: "0 20px 40px rgba(0, 126, 214, 0.3)",
-            transition: { duration: 0.4, ease: "easeOut" },
+            transition: { duration: 0.4, ease: easeOut },
         },
         tap: { scale: 0.98, y: -2, transition: { duration: 0.2 } },
     };
 
     const featureVariants = {
         hidden: { opacity: 0, x: -30, scale: 0.8 },
-        visible: (i) => ({
+        visible: (i: number) => ({
             opacity: 1,
             x: 0,
             scale: 1,
             transition: {
                 delay: i * 0.1 + 0.5,
                 duration: 0.5,
-                ease: "backOut",
+                ease: backOut,
             },
         }),
     };
@@ -148,20 +179,20 @@ export default function Products() {
             opacity: 1,
             y: 0,
             scale: 1,
-            transition: { delay: 1, duration: 0.6, ease: "easeOut" },
+            transition: { delay: 1, duration: 0.6, ease: easeOut },
         },
         hover: {
             scale: 1.05,
             backgroundColor: "#0068b3",
             boxShadow: "0 10px 25px rgba(0, 126, 214, 0.4)",
-            transition: { duration: 0.3, ease: "easeInOut" },
+            transition: { duration: 0.3, ease: easeInOut },
         },
         tap: { scale: 0.95, transition: { duration: 0.1 } },
     };
 
     const titleVariants = {
         hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } },
     };
 
     const priceVariants = {
@@ -169,7 +200,7 @@ export default function Products() {
         visible: {
             opacity: 1,
             scale: 1,
-            transition: { delay: 0.3, duration: 0.5, ease: "backOut" },
+            transition: { delay: 0.3, duration: 0.5, ease: backOut },
         },
     };
 

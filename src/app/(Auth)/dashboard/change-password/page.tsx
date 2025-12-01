@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { apiRequest } from '@/app/lib/api'
 
@@ -10,12 +10,19 @@ export default function ChangePassword() {
     const [showConfirm, setShowConfirm] = useState(false)
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState("")
-    const accessToken = localStorage.getItem("authToken")
+    // const accessToken = localStorage.getItem("authToken")
     const [formData, setFormData] = useState({
         old_password: "",
         new_password: "",
         confirm_password: ""
     })
+
+    const [accessToken, setAccessToken] = useState<string | null>(null);
+
+    useEffect(() => {
+        const token = localStorage.getItem("authToken");
+        setAccessToken(token);
+    }, [])
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target
@@ -63,15 +70,15 @@ export default function ChangePassword() {
             })
 
             setMessage("Password changed successfully!")
-            
+
             // Clear form after successful submission
             setFormData({
                 old_password: "",
                 new_password: "",
                 confirm_password: ""
             })
-        } catch (error: any) {
-            setMessage(error.message || "Failed to change password.")
+        } catch (error) {
+            setMessage(error instanceof Error ? error.message : "Failed to change password.")
         } finally {
             setLoading(false)
         }

@@ -24,6 +24,14 @@ interface ProfileData {
     Bio: string | null;
 }
 
+// Define the API response structure based on your apiRequest function
+interface ApiResponse<T = unknown> {
+    data?: T;
+    message?: string;
+    status?: number;
+    [key: string]: unknown;
+}
+
 export default function Profile() {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [preview, setPreview] = useState<string>(profile.src);
@@ -74,55 +82,55 @@ export default function Profile() {
 
         try {
             setLoading(true);
-            const data: ProfileData = await apiRequest("GET", "/accounts/profile/", null, {
+            const response = await apiRequest<ProfileData>("GET", "/accounts/profile/", null, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
-            console.log("Full API Response:", data);
+            // Handle different response structures
+            let profileData: ProfileData;
 
-            if (!data) {
-                throw new Error("No data received from API");
-            }
-
-            if (!data.user) {
-                console.warn("User object is missing from response, using fallback");
-                const userData = data as any;
-                setFormData({
-                    fullname: userData.fullname || userData.user?.fullname || "",
-                    email: userData.email || userData.user?.email || "",
-                    Country: data.Country || "",
-                    City: data.City || "",
-                    Province: data.Province || "",
-                    Gender: data.Gender || "",
-                    Bio: data.Bio || ""
-                });
+            // Check if response has data property (wrapped response)
+            if (response && typeof response === 'object' && 'data' in response) {
+                const apiResponse = response as ApiResponse<ProfileData>;
+                profileData = apiResponse.data || (response as unknown as ProfileData);
             } else {
-                setFormData({
-                    fullname: data.user?.fullname || "",
-                    email: data.user?.email || "",
-                    Country: data.Country || "",
-                    City: data.City || "",
-                    Province: data.Province || "",
-                    Gender: data.Gender || "",
-                    Bio: data.Bio || ""
-                });
+                // Direct ProfileData response
+                profileData = response as unknown as ProfileData;
             }
 
+            console.log("Profile Data:", profileData);
+
+            if (!profileData || typeof profileData !== 'object') {
+                throw new Error("No valid data received from API");
+            }
+
+            // Safely extract data with fallbacks
+            setFormData({
+                fullname: profileData.user?.fullname || "",
+                email: profileData.user?.email || "",
+                Country: profileData.Country || "",
+                City: profileData.City || "",
+                Province: profileData.Province || "",
+                Gender: profileData.Gender || "",
+                Bio: profileData.Bio || ""
+            });
+
+            // Update available options with data from API
             setAvailableOptions(prev => ({
-                countries: [...new Set([...prev.countries, data.Country || ""])].filter(Boolean),
-                cities: [...new Set([...prev.cities, data.City || ""])].filter(Boolean),
-                provinces: [...new Set([...prev.provinces, data.Province || ""])].filter(Boolean),
-                genders: [...new Set([...prev.genders, data.Gender || ""])].filter(Boolean)
+                countries: [...new Set([...prev.countries, profileData.Country || ""])].filter(Boolean),
+                cities: [...new Set([...prev.cities, profileData.City || ""])].filter(Boolean),
+                provinces: [...new Set([...prev.provinces, profileData.Province || ""])].filter(Boolean),
+                genders: [...new Set([...prev.genders, profileData.Gender || ""])].filter(Boolean)
             }));
 
-            if (data.profile_picture) {
-                setPreview(data.profile_picture);
+            if (profileData.profile_picture) {
+                setPreview(profileData.profile_picture);
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error("Error fetching profile:", error);
-            setMessage(error.message || "Failed to load profile data.");
+            setMessage((error instanceof Error ? error.message : String(error)) || "Failed to load profile data.");
         } finally {
             setLoading(false);
         }
@@ -149,8 +157,8 @@ export default function Profile() {
             // Optional: Auto-upload image when selected
             await uploadProfilePicture(file);
 
-        } catch (error: any) {
-            setMessage(error.message || "Failed to upload profile picture.");
+        } catch (error) {
+            setMessage((error instanceof Error ? error.message : String(error)) || "Failed to upload profile picture.");
             await fetchProfileData();
         }
     };
@@ -174,7 +182,7 @@ export default function Profile() {
             });
 
             setMessage("Profile picture updated successfully!");
-        } catch (error: any) {
+        } catch (error) {
             throw error; // Re-throw to handle in caller
         }
     };
@@ -224,8 +232,8 @@ export default function Profile() {
             setMessage("Profile updated successfully!");
             await fetchProfileData();
 
-        } catch (error: any) {
-            setMessage(error.message || "Failed to update profile.");
+        } catch (error) {
+            setMessage((error instanceof Error ? error.message : String(error)) || "Failed to update profile.");
         } finally {
             setSaving(false);
         }
@@ -306,7 +314,6 @@ export default function Profile() {
                             <input
                                 type="email"
                                 id="email"
-                                // placeholder="demo@gmail.com"
                                 value={formData.email}
                                 onChange={handleInputChange}
                                 disabled

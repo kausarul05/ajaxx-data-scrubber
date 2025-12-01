@@ -76,8 +76,8 @@ export default function Support() {
         setIsModalOpen(false);
         setMessage("");
       }, 2000);
-    } catch (error: any) {
-      setMessage(error.message || "Failed to send message. Please try again.");
+    } catch (error) {
+      setMessage((error instanceof Error ? error.message : String(error)) || "Failed to send message. Please try again.");
     } finally {
       setLoading(false);
     }

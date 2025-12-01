@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import { apiRequest } from '@/app/lib/api';
 import { toast } from "react-toastify";
@@ -9,7 +9,13 @@ export default function Page() {
     const [body, setBody] = useState("");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
-    const accessToken = localStorage.getItem("authToken");
+    // const accessToken = localStorage.getItem("authToken");
+    const [accessToken, setAccessToken] = useState<string | null>(null);
+
+    useEffect(() =>{
+        const token = localStorage.getItem("authToken");
+        setAccessToken(token);
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,8 +51,8 @@ export default function Page() {
             // Reset form after successful submission
             setBody("");
             setRating(4);
-        } catch (error: any) {
-            setMessage(error.message || "Failed to submit review.");
+        } catch (error) {
+            setMessage((error instanceof Error ? error.message : String(error)) || "Failed to submit review.");
         } finally {
             setLoading(false);
         }

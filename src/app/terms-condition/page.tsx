@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function page() {
+export default function Page() {
     return (
         <div className="min-h-screen bg-white pt-8 lg:px-[140px] md:pt-[40px]">
             <div className="w-full mx-auto bg-white">
@@ -8,24 +8,6 @@ export default function page() {
                 {/* Header Section */}
                 <div className=" text-black">
                     <h1 className="text-3xl md:text-4xl font-bold text-center mb-2">Terms and Conditions</h1>
-                    {/* <div className="flex flex-col md:flex-row justify-between items-center mt-6 text-sm md:text-base">
-                        <div>
-                            <p className="font-semibold">Effective Date</p>
-                            <p className="text-gray-300">10/20/2025</p>
-                        </div>
-                        <div className="mt-4 md:mt-0">
-                            <p className="font-semibold">Company Name</p>
-                            <p className="text-gray-300">Fortress Apps LLC</p>
-                        </div>
-                        <div className="mt-4 md:mt-0">
-                            <p className="font-semibold">Website</p>
-                            <p className="text-gray-300">https://www.ajaxxdatascrubber.com</p>
-                        </div>
-                        <div className="mt-4 md:mt-0">
-                            <p className="font-semibold">Contact</p>
-                            <p className="text-gray-300">support@ajaxxdatascrub.com</p>
-                        </div>
-                    </div> */}
                 </div>
 
                 {/* Content Section */}
@@ -41,7 +23,7 @@ export default function page() {
                         <div className="space-y-6">
                             <p className="text-gray-700 leading-relaxed">
                                 By accessing or using ajaxxdatascrubber.com, you agree to be bound by these Terms and
-                                Conditions ("Terms") and our Privacy Policy. If you do not agree, please do not use our
+                                Conditions (&quot;Terms&quot;) and our Privacy Policy. If you do not agree, please do not use our
                                 services.
                             </p>
                         </div>
@@ -56,7 +38,7 @@ export default function page() {
                         <p className="text-gray-700 leading-relaxed">
                             We help individuals identify and submit opt-out or deletion requests to data brokers who
                             collect, publish, or sell personal information online. The effectiveness of removals varies
-                            depending on the broker's policies and legal obligations.
+                            depending on the broker&apos;s policies and legal obligations.
                         </p>
 
                         <h2 className="text-xl font-semibold text-blue-500 mt-10 mb-4">4. User Eligibility</h2>
@@ -130,7 +112,7 @@ export default function page() {
                             <div>
                                 <h2 className="text-xl font-semibold text-blue-500 mb-4">12. Changes to Terms</h2>
                                 <p className="text-gray-700 leading-relaxed">
-                                    We reserve the right to update these Terms at any time. Changes will be posted on this page with an updated "Effective Date." Your continued use of the site and services constitutes acceptance of the revised Terms.
+                                    We reserve the right to update these Terms at any time. Changes will be posted on this page with an updated &quot;Effective Date.&quot; Your continued use of the site and services constitutes acceptance of the revised Terms.
                                 </p>
                             </div>
 
@@ -153,13 +135,6 @@ export default function page() {
                         </div>
                     </div>
                 </div>
-
-                {/* Footer */}
-                {/* <div className="border-t border-gray-200 bg-gray-50 p-4 text-center">
-                    <p className="text-gray-600 text-sm">
-                        © {new Date().getFullYear()} Fortress Apps LLC. All rights reserved.
-                    </p>
-                </div> */}
             </div>
         </div>
     )
