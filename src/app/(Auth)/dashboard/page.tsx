@@ -202,7 +202,6 @@ export default function Page() {
     const [memberUUID, setMemberUUID] = useState("")
 
     // Get user email from localStorage or auth token when component mounts
-    // Get user email from localStorage or auth token when component mounts
     useEffect(() => {
         const getUserEmail = () => {
             // Get email from localStorage userInfo

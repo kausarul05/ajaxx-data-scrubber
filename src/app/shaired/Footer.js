@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
 import { useRef } from 'react';
+import Link from 'next/link';
 
 export default function Footer() {
   const ref = useRef(null);
@@ -73,8 +74,8 @@ export default function Footer() {
             <h3 className="font-semibold mb-4">Support</h3>
             <ul className="space-y-2 text-sm text-gray-300">
               <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Login</a></li>
+              <li><Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Pollicy</Link></li>
+              {/* <li><a href="#" className="hover:text-white transition-colors">Login</a></li> */}
             </ul>
           </motion.div>
 

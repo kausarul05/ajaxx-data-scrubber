@@ -168,6 +168,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                 // Store token and user data
                 if (data.access) {
                     localStorage.setItem("authToken", data.access);
+                    document.cookie = `authToken=${data.access}; path=/; SameSite=Lax`;
                 }
 
                 if (data.user) {
@@ -236,6 +237,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                     // Store token and user data
                     if (response.access) {
                         localStorage.setItem("authToken", response.access);
+                        document.cookie = `authToken=${response.access}; path=/; SameSite=Lax`;
                     }
 
                     if (response.user) {
