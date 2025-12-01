@@ -74,8 +74,13 @@ export default function HistoryPage() {
     // Fetch history data from API
     useEffect(() => {
         const fetchHistoryData = async () => {
-            const userInfo = localStorage.getItem("userData")
-           const user = JSON.parse(userInfo);
+            const userInfo = localStorage.getItem("userData");
+            if (!userInfo) {
+                setError("User data not found");
+                setLoading(false);
+                return;
+            }
+            const user = JSON.parse(userInfo);
             try {
                 setLoading(true);
                 setError(null);

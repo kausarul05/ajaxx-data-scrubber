@@ -121,9 +121,9 @@ export default function Footer() {
           className="mt-10 border-t border-gray-700 pt-6 flex flex-col md:flex-row justify-center items-center gap-4 text-sm text-gray-300"
         >
           <p>© 2025. AJAXX DATA SCRUBBER. ALL RIGHTS RESERVED.</p>
-          <a href="#" className="underline hover:text-white transition-colors">
+          <Link href="/terms-condition" className="underline hover:text-white transition-colors">
             Terms & Conditions
-          </a>
+          </Link>
         </motion.div>
       </div>
     </footer>

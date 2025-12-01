@@ -970,7 +970,7 @@ export default function Page() {
                                             <span className="text-white font-medium">
                                                 {screenshot.databroker_name}
                                             </span>
-                                            {getStatusBadge(screenshot.exposure_status, screenshot.exposure_status_description)}
+                                            {getStatusBadge(screenshot.exposure_status)}
                                         </div>
                                         <div className="flex flex-wrap gap-1 mt-2">
                                             {getDataBadges(screenshot.databroker_data)}
@@ -1040,7 +1040,7 @@ export default function Page() {
                                 </div>
                                 <div>
                                     <h3 className="text-white text-xl font-semibold">{selectedService.databroker_name}</h3>
-                                    {getStatusBadge(selectedService.exposure_status, selectedService.exposure_status_description)}
+                                    {getStatusBadge(selectedService.exposure_status)}
                                 </div>
                             </div>
                             <button
@@ -1377,7 +1377,7 @@ export default function Page() {
                                 </p>
                             </div>
                             <button
-                                onClick={closeCustomRemovalModal}
+                                // onClick={closeCustomRemovalModal}
                                 className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
                             >
                                 <X size={24} />
