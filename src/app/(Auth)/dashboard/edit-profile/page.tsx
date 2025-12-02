@@ -38,6 +38,7 @@ export default function Profile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
+    const [userEmail, setUserEmail] = useState("")
     const [formData, setFormData] = useState({
         fullname: "",
         email: "",
@@ -66,8 +67,23 @@ export default function Profile() {
     };
 
     // Fetch profile data on component mount
+    // Fetch profile data on component mount
     useEffect(() => {
         fetchProfileData();
+        const userInfo = localStorage.getItem("userData");
+
+        // Add null check before parsing
+        if (userInfo) {
+            try {
+                const userInfoObj = JSON.parse(userInfo);
+                setUserEmail(userInfoObj?.email || "");
+            } catch (error) {
+                console.error("Error parsing user data:", error);
+                setUserEmail("");
+            }
+        } else {
+            setUserEmail("");
+        }
     }, []);
 
     const fetchProfileData = async () => {
@@ -108,7 +124,7 @@ export default function Profile() {
 
             // Safely extract data with fallbacks
             setFormData({
-                fullname: profileData.user?.fullname || "",
+                fullname: profileData.user?.fullname,
                 email: profileData.user?.email || "",
                 Country: profileData.Country || "",
                 City: profileData.City || "",
@@ -144,6 +160,7 @@ export default function Profile() {
     };
 
     // Handle image change
+    // Handle image change
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -159,6 +176,7 @@ export default function Profile() {
 
         } catch (error) {
             setMessage((error instanceof Error ? error.message : String(error)) || "Failed to upload profile picture.");
+            // If upload fails, revert to original picture
             await fetchProfileData();
         }
     };
@@ -171,17 +189,21 @@ export default function Profile() {
         }
 
         try {
-            const uploadData = new FormData();
-            uploadData.append('profile_picture', file);
+            const formData = new FormData();
+            formData.append('profile_picture', file);
 
-            await apiRequest("PATCH", "/accounts/profile/update/", uploadData, {
+            // Only send profile_picture, keep other fields as they are
+            await apiRequest("PATCH", "/accounts/profile/update/", formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    // Don't set Content-Type for FormData
                 }
             });
 
             setMessage("Profile picture updated successfully!");
+
+            // Refresh to get updated picture URL from server
+            await fetchProfileData();
+
         } catch (error) {
             throw error; // Re-throw to handle in caller
         }
@@ -208,28 +230,34 @@ export default function Profile() {
         setMessage("");
 
         try {
-            // First, upload profile picture if selected
+            // Create FormData to combine both profile data and profile picture
+            const formDataToSend = new FormData();
+
+            // Append all form data fields
+            formDataToSend.append('fullname', formData.fullname);
+            formDataToSend.append('Country', formData.Country);
+            formDataToSend.append('City', formData.City);
+            formDataToSend.append('Province', formData.Province);
+            formDataToSend.append('Gender', formData.Gender);
+            formDataToSend.append('Bio', formData.Bio);
+
+            // Append profile picture if selected
             if (selectedFile) {
-                await uploadProfilePicture(selectedFile);
-                setSelectedFile(null); // Reset after upload
+                formDataToSend.append('profile_picture', selectedFile);
             }
 
-            // Then update profile data
-            await apiRequest("PATCH", "/accounts/profile/update/", {
-                fullname: formData.fullname,
-                Country: formData.Country,
-                City: formData.City,
-                Province: formData.Province,
-                Gender: formData.Gender,
-                Bio: formData.Bio
-            }, {
+            // Send single PATCH request with FormData
+            await apiRequest("PATCH", "/accounts/profile/update/", formDataToSend, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    // Don't set Content-Type for FormData - browser will set it automatically with boundary
                 }
             });
 
             setMessage("Profile updated successfully!");
+            setSelectedFile(null); // Reset after successful upload
+
+            // Refresh profile data
             await fetchProfileData();
 
         } catch (error) {
@@ -237,7 +265,7 @@ export default function Profile() {
         } finally {
             setSaving(false);
         }
-    };  
+    };
 
     if (loading) {
         return (
@@ -314,8 +342,9 @@ export default function Profile() {
                             <input
                                 type="email"
                                 id="email"
-                                value={formData.email}
+                                value={userEmail}
                                 onChange={handleInputChange}
+                                readOnly
                                 disabled
                                 className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             />

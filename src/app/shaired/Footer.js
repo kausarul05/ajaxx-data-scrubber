@@ -39,7 +39,7 @@ export default function Footer() {
     <footer ref={ref} className="bg-[#0A3740] text-white py-12">
       <div className="px-4 sm:px-6 lg:px-[140px] pt-12 md:pt-[80px]">
         {/* Top Section */}
-        <motion.div 
+        <motion.div
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
           variants={containerVariants}
@@ -51,7 +51,7 @@ export default function Footer() {
               <Image
                 src={logo}
                 alt="AJAXX Logo"
-                // className="w-12 h-12"
+              // className="w-12 h-12"
               />
               {/* <h2 className="text-xl font-bold">AJAXX<br />DATA SCRUBBER</h2> */}
             </div>
@@ -65,7 +65,7 @@ export default function Footer() {
           <motion.div variants={itemVariants}>
             <h3 className="font-semibold mb-4">Home</h3>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li><a href="#" className="hover:text-white transition-colors">Overview</a></li>
+              <li><Link href="/" className="hover:text-white transition-colors">Overview</Link></li>
             </ul>
           </motion.div>
 
@@ -73,7 +73,9 @@ export default function Footer() {
           <motion.div variants={itemVariants}>
             <h3 className="font-semibold mb-4">Support</h3>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+              <li>
+                <Link href="/support" className="hover:text-white transition-colors">Contact Us</Link>
+                </li>
               <li><Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Pollicy</Link></li>
               {/* <li><a href="#" className="hover:text-white transition-colors">Login</a></li> */}
             </ul>
@@ -83,9 +85,15 @@ export default function Footer() {
           <motion.div variants={itemVariants}>
             <h3 className="font-semibold mb-4">Pricing</h3>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li><a href="#" className="hover:text-white transition-colors">Basic</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Silver</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Gold</a></li>
+              <li>
+                <Link href="/pricing" className="hover:text-white transition-colors">Basic</Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="hover:text-white transition-colors">Silver</Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="hover:text-white transition-colors">Gold</Link>
+              </li>
             </ul>
           </motion.div>
 
@@ -114,7 +122,7 @@ export default function Footer() {
         </motion.div>
 
         {/* Bottom Section */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6, delay: 0.4 }}

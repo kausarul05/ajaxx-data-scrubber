@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 interface GoogleTokenResponse {
     access_token: string;
-    id_token?: string;
+    // id_token?: string;
     scope: string;
     expires_in: number;
     token_type: string;
@@ -23,7 +23,7 @@ interface GoogleUserInfo {
 }
 
 interface GoogleAuthResult {
-    idToken: string;
+    // idToken: string;
     accessToken: string;
 }
 
@@ -369,13 +369,13 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                             console.log("User info:", userInfo);
 
                             // Ensure we have an id_token
-                            if (!response.id_token) {
+                            if (!response.access_token) {
                                 reject(new Error('ID token not received from Google'));
                                 return;
                             }
 
                             resolve({
-                                idToken: response.id_token,
+                                // idToken: response.id_token,
                                 accessToken: response.access_token
                             });
                         } catch (error: unknown) {

@@ -18,6 +18,7 @@ import {
     Search
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 // Remove unused type
 // type ServiceData = {
@@ -194,6 +195,7 @@ export default function Page() {
     const [activeRemovalTab, setActiveRemovalTab] = useState<'all' | 'in-progress'>('all');
 
     const [memberUUID, setMemberUUID] = useState("")
+    const router = useRouter();
 
     // Get user email from localStorage or auth token when component mounts
     useEffect(() => {
@@ -503,7 +505,7 @@ export default function Page() {
                 }
             } catch (error) {
                 console.error("Error fetching current plan:", error);
-                alert("Failed to load current subscription plan.");
+                // alert("Failed to load current subscription plan.");
             } finally {
                 setPlanLoading(false);
             }
@@ -593,6 +595,12 @@ export default function Page() {
 
     const handleClick = async () => {
         // ALWAYS check the API first, regardless of localStorage
+        if(currentPlan === null) {
+            toast.error("Please subscribe to a plan before starting a scan.");
+            router.push("/pricing")
+            return;
+        }
+
         if (!memberData) {
             // If no member data exists in API, show the form modal
             setShowFormModal(true);
@@ -703,7 +711,7 @@ export default function Page() {
 
         // Simple validation
         if (!formData.email || !formData.first_name) {
-            alert("Please fill required fields!");
+            toast.error("Please fill required fields!");
             setLoading(false);
             return;
         }
@@ -744,11 +752,11 @@ export default function Page() {
 
             const result = await response.json();
 
-            console.log(result?.data?.member_uuid)
+            console.log(result?.data?.optery_response?.uuid)
             if (result) {
                 setFormSubmitted(true);
                 setShowFormModal(false);
-                localStorage.setItem("uuid", result?.data?.member_uuid);
+                localStorage.setItem("uuid", result?.data?.optery_response?.uuid);
                 setMemberData(result); // Update member data state
                 toast.success("Member added successfully! You can now start the scan.");
 
