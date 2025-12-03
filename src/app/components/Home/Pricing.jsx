@@ -71,11 +71,11 @@ export default function Pricing() {
                 window.open(response.data.checkout_url, "_blank");
             } else {
                 console.error("Invalid checkout response:", response);
-                alert("Failed to create checkout session. Please try again.");
+                toast.error("Failed to create checkout session. Please try again.");
             }
         } catch (error) {
             console.error("Checkout error:", error);
-            alert("Error processing payment. Please try again.");
+            toast.error("Error processing payment. Please try again.");
         } finally {
             setProcessing(null);
         }
