@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
         hostname: "upload.wikimedia.org",
         pathname: "/wikipedia/commons/4/44/Plain_Yellow_Star.png",
       },
+      {
+        protocol: 'http',
+        hostname: '10.10.10.46',
+        port: '8000',
+        pathname: '/media/**',
+      },
     ],
   },
 };

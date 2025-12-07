@@ -16,6 +16,7 @@ interface User {
 interface ProfileData {
     id: number;
     user: User;
+    fullname: string;
     profile_picture: string | null;
     Country: string | null;
     City: string | null;
@@ -124,7 +125,7 @@ export default function Profile() {
 
             // Safely extract data with fallbacks
             setFormData({
-                fullname: profileData.user?.fullname,
+                fullname: profileData?.fullname,
                 email: profileData.user?.email || "",
                 Country: profileData.Country || "",
                 City: profileData.City || "",
