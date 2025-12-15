@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from './shaired/Navbar';
 import FooterWrapper from "./shaired/FooterWrapper";
-  import { ToastContainer } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
+import { ModalProvider } from "./context/ModalContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,10 +29,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Navbar />
-        <FooterWrapper>{children}</FooterWrapper>
+        <ModalProvider>
+          <Navbar />
+          <FooterWrapper>{children}</FooterWrapper>
 
-        <ToastContainer />
+          <ToastContainer />
+        </ModalProvider>
       </body>
     </html>
   );

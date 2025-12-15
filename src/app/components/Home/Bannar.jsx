@@ -5,11 +5,12 @@ import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
 import { useRef } from 'react';
 import banner from "@/../public/images/bannar.png.jpg";
-
+import { useModal } from '@/app/context/ModalContext';
 
 export default function Banner() {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-100px" });
+    const { openRegisterModal } = useModal(); // Use the context
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -80,6 +81,7 @@ export default function Banner() {
                             }}
                             whileTap={{ scale: 0.95 }}
                             className="bg-[#007ED6] px-8 py-4 rounded-lg text-white font-medium cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300"
+                            onClick={openRegisterModal}
                         >
                             Start Sign Up
                         </motion.button>

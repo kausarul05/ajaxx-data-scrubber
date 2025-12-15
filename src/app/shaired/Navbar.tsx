@@ -8,13 +8,22 @@ import { usePathname } from 'next/navigation';
 import LoginModal from '../components/Modal/LoginModal';
 import RegisterModal from '../components/Modal/RegisterModal';
 import ForgotPasswordModal from '../components/Modal/ForgotPasswordModal';
+import { useModal } from '../context/ModalContext';
 
 function Navbar() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [activeModal, setActiveModal] = useState<"login" | "register" | "forgotPassword" | null>(null);
+    
+    // Use the modal context instead of local state
+    const { 
+        activeModal, 
+        setActiveModal, 
+        openLoginModal, 
+        openRegisterModal, 
+        closeModal 
+    } = useModal();
 
     const pathname = usePathname();
 
@@ -146,13 +155,13 @@ function Navbar() {
                     ) : (
                         <>
                             <li
-                                onClick={() => setActiveModal("login")}
+                                onClick={openLoginModal} // Use context function
                                 className="hover:text-blue-300 cursor-pointer border border-[#007ED6] py-2 px-6 rounded-lg transition-all duration-300 hover:bg-[#007ED6]/10 hover:border-[#007ED6]/80 hover:scale-105"
                             >
                                 Sign In
                             </li>
                             <li
-                                onClick={() => setActiveModal("register")}
+                                onClick={openRegisterModal} // Use context function
                                 className="bg-[#007ED6] px-6 py-2 rounded hover:bg-[#007ED6]/90 cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#007ED6]/40"
                             >
                                 Sign Up
@@ -228,7 +237,7 @@ function Navbar() {
                                     <>
                                         <button 
                                             onClick={() => {
-                                                setActiveModal("login");
+                                                openLoginModal(); // Use context function
                                                 setIsMenuOpen(false);
                                             }} 
                                             className="hover:text-blue-300 cursor-pointer border-2 border-[#007ED6] py-4 px-8 rounded-xl text-lg font-semibold transition-all duration-300 hover:bg-[#007ED6]/10 hover:border-[#007ED6]/80 hover:scale-105"
@@ -237,7 +246,7 @@ function Navbar() {
                                         </button>
                                         <button 
                                             onClick={() => {
-                                                setActiveModal("register");
+                                                openRegisterModal(); // Use context function
                                                 setIsMenuOpen(false);
                                             }} 
                                             className="bg-[#007ED6] px-8 py-4 rounded-xl hover:bg-[#007ED6]/90 cursor-pointer text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#007ED6]/40"
@@ -260,25 +269,25 @@ function Navbar() {
                     </div>
                 </div>
 
-                {/* Modals */}
+                {/* Modals - Use the activeModal from context */}
                 {activeModal === "login" && (
                     <LoginModal
-                        onClose={() => setActiveModal(null)}
-                        onSwitchToRegister={() => setActiveModal("register")}
+                        onClose={closeModal} // Use context function
+                        onSwitchToRegister={openRegisterModal} // Use context function
                         setActiveModal={setActiveModal}
                     />
                 )}
 
                 {activeModal === "register" && (
                     <RegisterModal
-                        onClose={() => setActiveModal(null)}
-                        onSwitchToLogin={() => setActiveModal("login")}
+                        onClose={closeModal} // Use context function
+                        onSwitchToLogin={openLoginModal} // Use context function
                     />
                 )}
 
                 {activeModal === "forgotPassword" && (
                     <ForgotPasswordModal
-                        onClose={() => setActiveModal(null)}
+                        onClose={closeModal} // Use context function
                     />
                 )}
 

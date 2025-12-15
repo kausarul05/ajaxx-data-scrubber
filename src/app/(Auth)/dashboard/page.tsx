@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { apiRequest } from "@/app/lib/api";
+import axios from 'axios'; // Import axios properly
 
 // Remove unused type
 // type ServiceData = {
@@ -49,11 +51,11 @@ type SubscriptionData = {
     plan_uuid: string;
 };
 
-type ApiResponse = {
-    success: boolean;
-    message: string;
-    data: SubscriptionData;
-};
+// type ApiResponse<T = unknown> = {
+//     success: boolean;
+//     message: string;
+//     data: T;
+// };
 
 // Types based on your API response
 type ScanResponse = {
@@ -113,36 +115,34 @@ type CustomRemovalsResponse = {
     count: number;
 };
 
-// Type for member data API response
-type MemberDataResponse = {
-    success: boolean;
-    data: {
+
+type MemberData = {
+    uuid: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    middle_name: string;
+    city: string;
+    country: string;
+    state: string;
+    birthday_day: number;
+    birthday_month: number;
+    birthday_year: number;
+    plan: string;
+    postpone_scan: number;
+    group_tag: string | null;
+    address_line1: string;
+    address_line2: string;
+    zipcode: string;
+    optery_response: {
         uuid: string;
-        email: string;
-        first_name: string;
-        last_name: string;
-        middle_name: string;
-        city: string;
-        country: string;
-        state: string;
-        birthday_day: number;
-        birthday_month: number;
-        birthday_year: number;
-        plan: string;
-        postpone_scan: number;
-        group_tag: string | null;
-        address_line1: string;
-        address_line2: string;
-        zipcode: string;
-        optery_response: {
-            uuid: string;
-        };
-        status_code: number;
-        is_success: boolean;
-        created_at: string;
-        updated_at: string;
     };
+    status_code: number;
+    is_success: boolean;
+    created_at: string;
+    updated_at: string;
 };
+
 
 export default function Page() {
     const [clicked, setClicked] = useState(false);
@@ -174,7 +174,7 @@ export default function Page() {
     const [currentPlan, setCurrentPlan] = useState<SubscriptionData | null>(null);
     const [scanData, setScanData] = useState<ScanResponse | null>(null);
     const [scanLoading, setScanLoading] = useState(false);
-    const [memberData, setMemberData] = useState<MemberDataResponse | null>(null);
+    const [memberData, setMemberData] = useState<MemberData | null>(null);
     const [, setCheckingMemberData] = useState(false); // Mark as unused
     const [userEmail, setUserEmail] = useState(""); // Store logged in user's email
 
@@ -248,42 +248,44 @@ export default function Page() {
                 return;
             }
 
-            // Use email from localStorage in the API endpoint
-            const response = await fetch(`http://10.10.10.46:8000/data/api/optery-members/${currentUserEmail}/`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                },
-            });
-
-            if (response.ok) {
-                const data: MemberDataResponse = await response.json();
-                if (data.success && data.data) {
-                    setMemberData(data);
-                    setFormSubmitted(true); // Mark form as submitted since data exists
-                    setMemberUUID(data?.data?.uuid)
-                    console.log("Member data found in API:", data.data);
-                    return; // Data exists, don't show form
+            // Use apiRequest utility - it returns ApiResponse<MemberData>
+            const token = localStorage.getItem("authToken");
+            const response = await apiRequest<MemberData>(
+                "GET",
+                `/data/api/optery-members/${currentUserEmail}/`,
+                null,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
                 }
-            } else if (response.status === 404) {
+            );
+
+            if (response.success && response.data) {
+                // Store only the data portion
+                setMemberData(response.data);
+                setFormSubmitted(true);
+                setMemberUUID(response.data.uuid || "");
+                console.log("Member data found in API:", response.data);
+                return;
+            }
+
+        } catch (error: unknown) {
+            const err = error as Error;
+            // Check if it's a 404 error
+            if (err.message && err.message.includes('404')) {
                 console.log("No member data found in API - will show form when GO is clicked");
                 setMemberData(null);
                 setFormSubmitted(false);
+            } else {
+                console.error("Error checking member data:", error);
+                setMemberData(null);
+                setFormSubmitted(false);
             }
-
-            // If API returned 404 or no data, we need to show form
-            setMemberData(null);
-            setFormSubmitted(false);
-
-        } catch (error) {
-            console.error("Error checking member data:", error);
-            setMemberData(null);
-            setFormSubmitted(false);
         } finally {
             setCheckingMemberData(false);
         }
-    }, []); // Make this a useCallback
+    }, []);
 
     // Call checkMemberData on component mount
     useEffect(() => {
@@ -300,27 +302,33 @@ export default function Page() {
 
         try {
             setCustomRemovalsLoading(true);
-            const response = await fetch(`http://10.10.10.46:8000/data/optery/custom-removals/?member_uuid=${memberUUID}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                },
-            });
+            const token = localStorage.getItem("authToken");
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const response = await apiRequest<CustomRemovalsResponse>(
+                "GET",
+                `/data/optery/custom-removals/?member_uuid=${memberUUID}`,
+                null,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            // Type guard to check if response has items property
+            if (response && typeof response === 'object' && 'items' in response && Array.isArray(response.items)) {
+                setCustomRemovals(response.items);
+            } else {
+                console.error("Invalid response structure:", response);
+                toast.error("Failed to load custom removal requests: Invalid response format");
             }
-
-            const data: CustomRemovalsResponse = await response.json();
-            setCustomRemovals(data.items);
         } catch (error) {
             console.error("Error fetching custom removals:", error);
             toast.error("Failed to load custom removal requests.");
         } finally {
             setCustomRemovalsLoading(false);
         }
-    }, [memberUUID]); // Add memberUUID to dependencies
+    }, [memberUUID]);
 
     useEffect(() => {
         if (showCustomRemovalModal) {
@@ -398,37 +406,44 @@ export default function Page() {
                 formData.append("proof_of_exposure", proofFile);
             }
 
-            const response = await fetch(`http://10.10.10.46:8000/data/custom-removal/?member_uuid=${memberUUID}`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                },
-                body: formData,
-            });
+            // For file uploads, use axios directly
+            const token = localStorage.getItem("authToken");
+            const baseURL = 'https://backend.ajaxxdatascrubber.com';
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const response = await axios.post(
+                `${baseURL}/data/custom-removal/?member_uuid=${memberUUID}`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (response.data) {
+                toast.success("Custom removal request submitted successfully!");
+
+                // Reset form
+                setRemovalFormData({
+                    exposed_url: "",
+                    search_engine_url: "",
+                    search_keywords: "",
+                    additional_information: ""
+                });
+                setProofFile(null);
+                setDraggedImage(null);
+
+                // Refresh the list
+                fetchCustomRemovals();
+            } else {
+                throw new Error('No response data received');
             }
 
-           await response.json();
-            toast.success("Custom removal request submitted successfully!");
-
-            // Reset form
-            setRemovalFormData({
-                exposed_url: "",
-                search_engine_url: "",
-                search_keywords: "",
-                additional_information: ""
-            });
-            setProofFile(null);
-            setDraggedImage(null);
-
-            // Refresh the list
-            fetchCustomRemovals();
-
-        } catch (error) {
+        } catch (error: unknown) {
+            const err = error as Error;
             console.error("Error submitting removal request:", error);
-            toast.error("Failed to submit removal request. Please try again.");
+            toast.error(`Failed to submit removal request: ${err.message}`);
         } finally {
             setSubmittingRemoval(false);
         }
@@ -482,19 +497,18 @@ export default function Page() {
         const fetchCurrentPlan = async () => {
             try {
                 setPlanLoading(true);
-                const response = await fetch("http://10.10.10.46:8000/payment/payments/current-subscription/", {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                    },
-                });
+                const token = localStorage.getItem("authToken");
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data: ApiResponse = await response.json();
+                const data = await apiRequest<SubscriptionData>(
+                    "GET",
+                    "/payment/payments/current-subscription/",
+                    null,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
 
                 if (data.success && data.data) {
                     setCurrentPlan(data.data);
@@ -505,7 +519,6 @@ export default function Page() {
                 }
             } catch (error) {
                 console.error("Error fetching current plan:", error);
-                // alert("Failed to load current subscription plan.");
             } finally {
                 setPlanLoading(false);
             }
@@ -595,12 +608,13 @@ export default function Page() {
 
     const handleClick = async () => {
         // ALWAYS check the API first, regardless of localStorage
-        if(currentPlan === null) {
+        if (currentPlan === null) {
             toast.error("Please subscribe to a plan before starting a scan.");
             router.push("/pricing")
             return;
         }
 
+        // Check if we have member data (not the API response wrapper, just the data)
         if (!memberData) {
             // If no member data exists in API, show the form modal
             setShowFormModal(true);
@@ -617,21 +631,25 @@ export default function Page() {
             setClicked(true);
             setScanning(true);
 
-            // Call the data scans API
-            const response = await fetch(`http://10.10.10.46:8000/data/optery/data-scans/?member_uuid=${memberUUID}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                },
-            });
+            // Call the data scans API using apiRequest
+            const token = localStorage.getItem("authToken");
+            const scanResult = await apiRequest<ScanResponse>(
+                "GET",
+                `/data/optery/data-scans/?member_uuid=${memberUUID}`,
+                null,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            // Extract the data from the API response
+            if (scanResult.success && scanResult.data) {
+                setScanData(scanResult.data);
+            } else {
+                setScanData(null);
             }
-
-            const scanResult: ScanResponse = await response.json();
-            setScanData(scanResult);
 
             // Simulate scanning process
             setTimeout(() => setClicked(false), 800);
@@ -647,6 +665,7 @@ export default function Page() {
             toast.error("Failed to start scan. Please try again.");
             setScanning(false);
             setClicked(false);
+            setScanData(null);
         } finally {
             setScanLoading(false);
         }
@@ -730,34 +749,31 @@ export default function Page() {
                 birthday_month: formData.birthday_month ? parseInt(formData.birthday_month) : null,
                 birthday_year: formData.birthday_year ? parseInt(formData.birthday_year) : null,
                 plan: formData.plan,
-                postpone_scan: formData.postpone_scan ? parseInt(formData.postpone_scan)  : "",
+                postpone_scan: formData.postpone_scan ? parseInt(formData.postpone_scan) : "",
                 group_tag: null,
                 address_line1: formData.address_line1,
                 address_line2: formData.address_line2,
                 zip_code: formData.zipcode
             };
 
-            const response = await fetch("http://10.10.10.46:8000/data/optery/members/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
+            const token = localStorage.getItem("authToken");
+            const result = await apiRequest<MemberData>(
+                "POST",
+                "/data/optery/members/",
+                payload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
 
             console.log(result?.data?.optery_response?.uuid)
-            if (result) {
+            if (result.success && result.data) {
                 setFormSubmitted(true);
                 setShowFormModal(false);
-                localStorage.setItem("uuid", result?.data?.optery_response?.uuid);
-                setMemberData(result); // Update member data state
+                localStorage.setItem("uuid", result.data.optery_response?.uuid || '');
+                setMemberData(result.data); // Update member data state
                 toast.success("Member added successfully! You can now start the scan.");
 
                 // Start scan automatically after form submission

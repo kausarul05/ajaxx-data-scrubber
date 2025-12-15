@@ -187,7 +187,7 @@ export default function RegisterModal({ onClose, onSwitchToLogin }: Props) {
             <div className="relative bg-[#0A2131] text-white rounded-2xl w-full max-w-[550px] mx-auto drop-shadow-sm drop-shadow-[#0ABF9D66]">
                 <button
                     onClick={onClose}
-                    className="absolute top-3 right-3 text-white p-1"
+                    className="absolute top-3 right-3 text-white p-1 cursor-pointer"
                 >
                     <X size={24} />
                 </button>

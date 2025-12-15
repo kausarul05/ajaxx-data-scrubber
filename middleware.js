@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers'; // Note: cookies() is now recommended
 
 export async function middleware(request) {
-  console.log('🔥 Middleware running for:', request.nextUrl.pathname);
+  // console.log('🔥 Middleware running for:', request.nextUrl.pathname);
   
   // In Next.js 15, you might need to use cookies() differently
   const cookieStore = cookies();

@@ -1,7 +1,7 @@
 "use client";
 
 import logo from '@/../public/images/logo.png'
-import { Facebook, Linkedin } from 'lucide-react';
+import { Facebook, Linkedin, Youtube } from 'lucide-react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
@@ -104,7 +104,8 @@ export default function Footer() {
               <motion.a
                 whileHover={{ scale: 1.1, backgroundColor: "#007ED6" }}
                 whileTap={{ scale: 0.95 }}
-                href="#"
+                href="https://www.facebook.com/profile.php?id=61584746668798"
+                target="_blank"
                 className="w-10 h-10 flex items-center justify-center border border-[#007ED6] rounded-full hover:bg-[#007ED6] transition-colors"
               >
                 <Facebook size={18} />
@@ -112,10 +113,20 @@ export default function Footer() {
               <motion.a
                 whileHover={{ scale: 1.1, backgroundColor: "#007ED6" }}
                 whileTap={{ scale: 0.95 }}
-                href="#"
+                href="https://www.instagram.com/thureous/"
+                target="_blank"
                 className="w-10 h-10 flex items-center justify-center border border-[#007ED6] rounded-full hover:bg-[#007ED6] transition-colors"
               >
                 <Linkedin size={18} />
+              </motion.a>
+              <motion.a
+                whileHover={{ scale: 1.1, backgroundColor: "#007ED6" }}
+                whileTap={{ scale: 0.95 }}
+                href="https://www.youtube.com/@AegisDigital"
+                target="_blank"
+                className="w-10 h-10 flex items-center justify-center border border-[#007ED6] rounded-full hover:bg-[#007ED6] transition-colors"
+              >
+                <Youtube size={18} />
               </motion.a>
             </div>
           </motion.div>

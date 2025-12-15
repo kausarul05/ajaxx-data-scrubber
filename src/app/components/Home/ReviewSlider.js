@@ -22,11 +22,7 @@ export default function ReviewSlider() {
       try {
         setLoading(true);
         const assessToken = localStorage.getItem('authToken');
-        const data = await apiRequest("GET", "/service/review/?page=1&page_size=5", null, {
-          headers : {
-            Authorization : `Bearer ${assessToken}`
-          }
-        });
+        const data = await apiRequest("GET", "/service/review/?page=1&page_size=5");
         setReviews(data.results);
       } catch (error) {
         console.error('Failed to fetch reviews:', error);
