@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
 import { useRef, useEffect, useState } from 'react';
 import { apiRequest } from "@/app/lib/api";
-
+import { toast } from "react-toastify";
 
 // Type for FAQ item
 interface FAQItem {
@@ -17,14 +17,6 @@ interface FAQItem {
   created_at: string;
   updated_at: string;
 }
-
-// Type for API response - REMOVED since it's not used
-// interface FAQResponse {
-//   count: number;
-//   next: string | null;
-//   previous: string | null;
-//   results: FAQItem[];
-// }
 
 export default function FAQSection() {
   const ref = useRef(null);
@@ -40,28 +32,55 @@ export default function FAQSection() {
       try {
         setLoading(true);
         setError(null);
+        
+        // Remove the pageSize parameter since this is the public FAQ section
+        const response = await apiRequest<{
+          count?: number;
+          next?: string | null;
+          previous?: string | null;
+          results?: FAQItem[];
+        }>(
+          "GET",
+          `/service/faq/`,
+          // null,
+          // {
+          //   headers: {
+          //     Authorization: `Bearer ${localStorage.getItem("authToken")}`
+          //   }
+          // }
+        );
 
-        // Fetch data from your API
-        const response = await apiRequest<{ results: FAQItem[] }>("GET", "/service/faq/");
+        console.log("API Response:", response);
 
-        // Type guard to check if response has the expected structure
-        if (response && typeof response === 'object' && 'data' in response) {
-          // apiRequest returns ApiResponse<T>, so we need to access response.data
-          const apiData = response.data;
-
-          if (apiData && typeof apiData === 'object' && 'results' in apiData && Array.isArray(apiData.results)) {
-            // Filter only published FAQs and update state
-            const publishedFAQs = apiData.results.filter(faq => faq.is_published);
+        // Handle the response based on its structure
+        if (response && typeof response === 'object') {
+          // Option 1: Direct response structure (no data wrapper)
+          if ('results' in response && Array.isArray(response.results)) {
+            // Filter only published FAQs for the public section
+            const publishedFAQs = response.results.filter(faq => faq.is_published);
+            setFaqs(publishedFAQs);
+          }
+          // Option 2: API response wrapped in data property
+          else if ('data' in response && response.data && typeof response.data === 'object' && 'results' in response.data && Array.isArray(response.data.results)) {
+            // Filter only published FAQs for the public section
+            const publishedFAQs = response.data.results.filter(faq => faq.is_published);
+            setFaqs(publishedFAQs);
+          }
+          // Option 3: If response is directly an array
+          else if (Array.isArray(response)) {
+            // Filter only published FAQs for the public section
+            const publishedFAQs = response.filter(faq => faq.is_published);
             setFaqs(publishedFAQs);
           } else {
+            console.warn("Unexpected API response structure:", response);
             setFaqs([]);
-            setError('Invalid API response format');
+            setError("Invalid API response format");
           }
         } else {
           setFaqs([]);
-          setError('Invalid API response');
+          setError("Failed to load FAQs");
         }
-
+        
       } catch (err) {
         console.error('Failed to fetch FAQs:', err);
         setError('Failed to load FAQs. Please try again later.');
@@ -73,18 +92,6 @@ export default function FAQSection() {
 
     fetchFAQs();
   }, []);
-
-  // If you want to handle pagination (optional)
-  // const loadMoreFAQs = async () => {
-  //   try {
-  //     // Example with pagination - adjust based on your API
-  //     const data = await apiRequest<{ results: FAQItem[] }>("GET", "/service/faq/?page=2");
-  //     const publishedFAQs = data.results.filter(faq => faq.is_published);
-  //     setFaqs(prev => [...prev, ...publishedFAQs]);
-  //   } catch (err) {
-  //     console.error('Failed to load more FAQs:', err);
-  //   }
-  // };
 
   return (
     <section ref={ref} className="bg-custom lg:section-gap md:section-gap section-gap text-white">
@@ -154,18 +161,6 @@ export default function FAQSection() {
             )}
           </motion.div>
         )}
-
-        {/* Optional: Load more button for pagination */}
-        {/* {faqs.length > 0 && (
-          <div className="text-center mt-8">
-            <button
-              onClick={loadMoreFAQs}
-              className="px-6 py-2 bg-[#007ED6] text-white rounded-lg hover:bg-[#0066b3] transition"
-            >
-              Load More
-            </button>
-          </div>
-        )} */}
       </div>
     </section>
   );
