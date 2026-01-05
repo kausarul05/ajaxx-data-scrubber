@@ -241,10 +241,10 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
             }
         } catch (err) {
             const errorObj = err as { error?: string; message?: string };
-            console.log("Login error:", errorObj?.error || errorObj?.message || err);
+            // console.log("Login error:",err?.data?.error);
             // Handle specific error messages from your API
             if (err) {
-                setError(errorObj?.error || errorObj?.message || "Login failed. Please try again.");
+                setError(err?.data?.error);
             }
         } finally {
             setIsLoading(false);

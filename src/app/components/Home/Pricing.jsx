@@ -51,7 +51,7 @@ export default function Pricing() {
             console.log("localStorage", localStorage.getItem("authToken"))
             const response = await apiRequest(
                 "POST", 
-                "/payment/payments/create-checkout-session/", 
+                "/payment/create-checkout-session/", 
                 {
                     subscription_id: subscriptionId,
                     token : localStorage.getItem("authToken")
@@ -65,10 +65,10 @@ export default function Pricing() {
 
             console.log("Checkout Session Response:", response); // Debug log
 
-            if (response.data) {
+            if (response.checkout_url) {
                 // Redirect to Stripe checkout
                 // window.location.href = response.data.checkout_url;
-                window.open(response.data.checkout_url, "_blank");
+                window.open(response.checkout_url, "_blank");
             } else {
                 console.error("Invalid checkout response:", response);
                 toast.error("Failed to create checkout session. Please try again.");

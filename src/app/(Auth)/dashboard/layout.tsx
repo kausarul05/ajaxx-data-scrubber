@@ -11,6 +11,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const menuItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/subscriptions", icon: History, label: "Subscriptions" },
     { href: "/dashboard/history", icon: History, label: "History" },
     { href: "/dashboard/review", icon: Star, label: "Review" },
     { href: "/dashboard/edit-profile", icon: User, label: "Edit Profile" },

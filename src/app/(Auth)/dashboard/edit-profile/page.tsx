@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import profile from "@/../public/images/profile.jpg"
 import Image from 'next/image'
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { apiRequest } from '@/app/lib/api'
 
 interface User {
@@ -40,6 +40,10 @@ export default function Profile() {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
     const [userEmail, setUserEmail] = useState("")
+    const [userId, setUserId] = useState<number | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
     const [formData, setFormData] = useState({
         fullname: "",
         email: "",
@@ -68,7 +72,6 @@ export default function Profile() {
     };
 
     // Fetch profile data on component mount
-    // Fetch profile data on component mount
     useEffect(() => {
         fetchProfileData();
         const userInfo = localStorage.getItem("userData");
@@ -78,12 +81,15 @@ export default function Profile() {
             try {
                 const userInfoObj = JSON.parse(userInfo);
                 setUserEmail(userInfoObj?.email || "");
+                setUserId(userInfoObj?.id || null);
             } catch (error) {
                 console.error("Error parsing user data:", error);
                 setUserEmail("");
+                setUserId(null);
             }
         } else {
             setUserEmail("");
+            setUserId(null);
         }
     }, []);
 
@@ -161,7 +167,6 @@ export default function Profile() {
     };
 
     // Handle image change
-    // Handle image change
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -236,9 +241,9 @@ export default function Profile() {
 
             // Append all form data fields
             formDataToSend.append('fullname', formData.fullname);
-            formDataToSend.append('Country', formData.Country);
-            formDataToSend.append('City', formData.City);
-            formDataToSend.append('Province', formData.Province);
+            // formDataToSend.append('Country', formData.Country);
+            // formDataToSend.append('City', formData.City);
+            // formDataToSend.append('Province', formData.Province);
             formDataToSend.append('Gender', formData.Gender);
             formDataToSend.append('Bio', formData.Bio);
 
@@ -268,6 +273,50 @@ export default function Profile() {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        if (!userId) {
+            setDeleteError("User ID not found");
+            return;
+        }
+
+        setDeleting(true);
+        setDeleteError("");
+
+        try {
+            const token = getAccessToken();
+            if (!token) {
+                setDeleteError("Authentication token not found");
+                return;
+            }
+
+            await apiRequest("DELETE", `/accounts/admin/delete-user/${userId}/`, null, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }
+            });
+
+            // Clear local storage and redirect to login
+            localStorage.clear();
+            window.location.href = '/';
+
+        } catch (error: any) {
+            console.error("Error deleting account:", error);
+            setDeleteError(error.message || "Failed to delete account. Please try again.");
+        } finally {
+            setDeleting(false);
+            setShowDeleteModal(false);
+        }
+    };
+
+    const confirmDeleteAccount = () => {
+        setShowDeleteModal(true);
+    };
+
+    const closeDeleteModal = () => {
+        setShowDeleteModal(false);
+        setDeleteError("");
+    };
+
     if (loading) {
         return (
             <div className="bg-[#0A2131] flex items-center justify-center p-4 sm:p-6 lg:p-8 min-h-screen">
@@ -281,180 +330,210 @@ export default function Profile() {
     }
 
     return (
-        <div className="bg-[#0A2131] flex items-center justify-center p-4 sm:p-6 lg:p-8">
-            <div className="bg-[#0D314B] text-white rounded-lg p-4 sm:p-6 lg:p-8 w-full">
-                {/* Header */}
-                <h2 className="text-white text-lg font-medium mb-4 sm:mb-6">Profile Information</h2>
-                <div className="border-b border-[#007ED6] mb-4 sm:mb-6"></div>
-
-                {/* Message Display */}
-                {message && (
-                    <div className={`mb-4 p-3 rounded-lg text-sm ${message.includes("successfully") ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
-                        {message}
-                    </div>
-                )}
-
-                {/* Profile Image */}
-                <div className="flex mb-4 sm:mb-6">
-                    <div className="relative">
-                        <Image
-                            src={preview}
-                            alt="Profile"
-                            width={96}
-                            height={96}
-                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover"
-                        />
-
-                        {/* Edit Icon */}
-                        <div
-                            onClick={handleEditClick}
-                            className="absolute right-[-8px] sm:right-[-10px] bottom-0 bg-gray-600 p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-gray-700 transition"
+        <>
+            <div className="bg-[#0A2131] flex items-center justify-center p-4 sm:p-6 lg:p-8">
+                <div className="bg-[#0D314B] text-white rounded-lg p-4 sm:p-6 lg:p-8 w-full">
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-4 sm:mb-6">
+                        <h2 className="text-white text-lg font-medium">Profile Information</h2>
+                        <button
+                            type="button"
+                            onClick={confirmDeleteAccount}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-600/30 rounded-lg transition-colors duration-200"
                         >
-                            <Pencil size={16} className="sm:w-5 sm:h-5" color="white" />
-                        </div>
-
-                        {/* Hidden file input */}
-                        <input
-                            type="file"
-                            accept="image/*"
-                            ref={fileInputRef}
-                            className="hidden"
-                            onChange={handleFileChange}
-                        />
+                            <Trash2 className="w-4 h-4" />
+                            <span className="text-sm font-medium">Delete Account</span>
+                        </button>
                     </div>
-                </div>
+                    <div className="border-b border-[#007ED6] mb-4 sm:mb-6"></div>
 
-                <form onSubmit={handleSubmit}>
-                    <div className="space-y-4 sm:space-y-6">
-                        <div>
-                            <label className="block text-sm font-semibold" htmlFor="fullname">Display Name</label>
-                            <input
-                                type="text"
-                                id="fullname"
-                                placeholder="Enter Your Display Name"
-                                value={formData.fullname}
-                                onChange={handleInputChange}
-                                className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
+                    {/* Message Display */}
+                    {message && (
+                        <div className={`mb-4 p-3 rounded-lg text-sm ${message.includes("successfully") ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
+                            {message}
+                        </div>
+                    )}
+
+                    {/* Profile Image */}
+                    <div className="flex mb-4 sm:mb-6">
+                        <div className="relative">
+                            <Image
+                                src={preview}
+                                alt="Profile"
+                                width={96}
+                                height={96}
+                                className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover"
                             />
-                        </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold" htmlFor="email">Email</label>
-                            <input
-                                type="email"
-                                id="email"
-                                value={userEmail}
-                                onChange={handleInputChange}
-                                readOnly
-                                disabled
-                                className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                            <small className="text-gray-400 text-xs">Email cannot be changed</small>
-                        </div>
-
-                        <div className='flex flex-col sm:flex-row justify-between gap-4 sm:gap-6'>
-                            <div className='w-full'>
-                                <label className="block text-sm font-semibold" htmlFor="Country">Country</label>
-                                <select
-                                    id="Country"
-                                    value={formData.Country}
-                                    onChange={handleInputChange}
-                                    className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
-                                >
-                                    <option value="">Select Your Country</option>
-                                    {availableOptions.countries.map(country => (
-                                        <option key={country} value={country}>{country}</option>
-                                    ))}
-                                    {/* Add custom option if value doesn't exist in list */}
-                                    {formData.Country && !availableOptions.countries.includes(formData.Country) && (
-                                        <option value={formData.Country}>{formData.Country}</option>
-                                    )}
-                                </select>
-                            </div>
-
-                            <div className='w-full'>
-                                <label className="block text-sm font-semibold" htmlFor="City">City</label>
-                                <select
-                                    id="City"
-                                    value={formData.City}
-                                    onChange={handleInputChange}
-                                    className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
-                                >
-                                    <option value="">Select Your City</option>
-                                    {availableOptions.cities.map(city => (
-                                        <option key={city} value={city}>{city}</option>
-                                    ))}
-                                    {/* Add custom option if value doesn't exist in list */}
-                                    {formData.City && !availableOptions.cities.includes(formData.City) && (
-                                        <option value={formData.City}>{formData.City}</option>
-                                    )}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className='flex flex-col sm:flex-row justify-between gap-4 sm:gap-6'>
-                            <div className='w-full'>
-                                <label className="block text-sm font-semibold" htmlFor="Province">Province</label>
-                                <select
-                                    id="Province"
-                                    value={formData.Province}
-                                    onChange={handleInputChange}
-                                    className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
-                                >
-                                    <option value="">Select Your Province</option>
-                                    {availableOptions.provinces.map(province => (
-                                        <option key={province} value={province}>{province}</option>
-                                    ))}
-                                    {/* Add custom option if value doesn't exist in list */}
-                                    {formData.Province && !availableOptions.provinces.includes(formData.Province) && (
-                                        <option value={formData.Province}>{formData.Province}</option>
-                                    )}
-                                </select>
-                            </div>
-
-                            <div className='w-full'>
-                                <label className="block text-sm font-semibold" htmlFor="Gender">Gender</label>
-                                <select
-                                    id="Gender"
-                                    value={formData.Gender}
-                                    onChange={handleInputChange}
-                                    className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
-                                >
-                                    <option value="">Select Your Gender</option>
-                                    {availableOptions.genders.map(gender => (
-                                        <option key={gender} value={gender}>{gender}</option>
-                                    ))}
-                                    {/* Add custom option if value doesn't exist in list */}
-                                    {formData.Gender && !availableOptions.genders.includes(formData.Gender) && (
-                                        <option value={formData.Gender}>{formData.Gender}</option>
-                                    )}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold" htmlFor="Bio">Bio</label>
-                            <textarea
-                                id="Bio"
-                                placeholder="Enter Your Bio"
-                                value={formData.Bio}
-                                onChange={handleInputChange}
-                                className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
-                            ></textarea>
-                        </div>
-
-                        <div className="mt-6 sm:mt-8">
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="py-3 sm:py-4 px-8 sm:px-14 bg-[#007ED6] text-white font-semibold text-sm rounded-lg hover:bg-[#0066b3] disabled:bg-gray-600 disabled:cursor-not-allowed transition duration-300 cursor-pointer w-full sm:w-auto"
+                            {/* Edit Icon */}
+                            <div
+                                onClick={handleEditClick}
+                                className="absolute right-[-8px] sm:right-[-10px] bottom-0 bg-gray-600 p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-gray-700 transition"
                             >
-                                {saving ? "Saving..." : "Save"}
+                                <Pencil size={16} className="sm:w-5 sm:h-5" color="white" />
+                            </div>
+
+                            {/* Hidden file input */}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                ref={fileInputRef}
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleSubmit}>
+                        <div className="space-y-4 sm:space-y-6">
+                            <div>
+                                <label className="block text-sm font-semibold" htmlFor="fullname">Display Name</label>
+                                <input
+                                    type="text"
+                                    id="fullname"
+                                    placeholder="Enter Your Display Name"
+                                    value={formData.fullname}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold" htmlFor="email">Email</label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    value={userEmail}
+                                    onChange={handleInputChange}
+                                    readOnly
+                                    disabled
+                                    className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                />
+                                <small className="text-gray-400 text-xs">Email cannot be changed</small>
+                            </div>
+
+                            <div className='flex flex-col sm:flex-row justify-between gap-4 sm:gap-6'>
+                                <div className='w-full'>
+                                    <label className="block text-sm font-semibold" htmlFor="Gender">Gender</label>
+                                    <select
+                                        id="Gender"
+                                        value={formData.Gender}
+                                        onChange={handleInputChange}
+                                        className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
+                                    >
+                                        <option value="">Select Your Gender</option>
+                                        {availableOptions.genders.map(gender => (
+                                            <option key={gender} value={gender}>{gender}</option>
+                                        ))}
+                                        {formData.Gender && !availableOptions.genders.includes(formData.Gender) && (
+                                            <option value={formData.Gender}>{formData.Gender}</option>
+                                        )}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold" htmlFor="Bio">Bio</label>
+                                <textarea
+                                    id="Bio"
+                                    placeholder="Enter Your Bio"
+                                    value={formData.Bio}
+                                    onChange={handleInputChange}
+                                    className="w-full mt-2 p-3 bg-[#0D314B] border border-[#007ED6] text-white rounded-lg text-sm"
+                                ></textarea>
+                            </div>
+
+                            <div className="mt-6 sm:mt-8 flex gap-4">
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="py-3 sm:py-4 px-8 sm:px-14 bg-[#007ED6] text-white font-semibold text-sm rounded-lg hover:bg-[#0066b3] disabled:bg-gray-600 disabled:cursor-not-allowed transition duration-300 cursor-pointer w-full sm:w-auto"
+                                >
+                                    {saving ? "Saving..." : "Save"}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {/* Delete Account Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+                    <div className="bg-[#0D314B] border border-red-600/30 rounded-xl p-6 max-w-md w-full">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-red-600/20 rounded-lg">
+                                <AlertTriangle className="w-6 h-6 text-red-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-white">Delete Account</h3>
+                                <p className="text-sm text-gray-400">This action cannot be undone</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 mb-6">
+                            <p className="text-red-300">
+                                Are you sure you want to delete your account? This action will:
+                            </p>
+                            <ul className="space-y-2 text-sm text-gray-300">
+                                <li className="flex items-start gap-2">
+                                    <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5"></div>
+                                    <span>Permanently delete all your data</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5"></div>
+                                    <span>Cancel any active subscriptions</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5"></div>
+                                    <span>Remove all your files and data</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5"></div>
+                                    <span>This action cannot be undone</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {deleteError && (
+                            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                <p className="text-red-300 text-sm">{deleteError}</p>
+                            </div>
+                        )}
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={closeDeleteModal}
+                                className="flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
+                                disabled={deleting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteAccount}
+                                disabled={deleting}
+                                className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:bg-red-800 disabled:cursor-not-allowed"
+                            >
+                                {deleting ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="w-4 h-4" />
+                                        Delete Account
+                                    </>
+                                )}
                             </button>
                         </div>
+
+                        <p className="text-xs text-gray-400 mt-4 text-center">
+                            You will be logged out immediately after deletion
+                        </p>
                     </div>
-                </form>
-            </div>
-        </div>
-    )
+                </div>
+            )}
+        </>
+    );
 }
