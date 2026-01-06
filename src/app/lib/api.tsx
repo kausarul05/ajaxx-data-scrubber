@@ -54,7 +54,7 @@ export const apiRequest = async <T = unknown>(
       };
     };
     
-    console.error("API Error:", axiosError.response?.data || axiosError.message);
+    // console.error("API Error:", axiosError.response?.data || axiosError.message);
     
     // Create a typed error object
     const apiError: ApiError = {
