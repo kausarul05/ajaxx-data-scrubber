@@ -9,6 +9,8 @@ import LoginModal from '../components/Modal/LoginModal';
 import RegisterModal from '../components/Modal/RegisterModal';
 import ForgotPasswordModal from '../components/Modal/ForgotPasswordModal';
 import { useModal } from '../context/ModalContext';
+import { getCookie, removeCookie } from '../utils/cookies';
+// import { getCookie, removeCookie } from '@/utils/cookies'; // Import cookie utilities
 
 function Navbar() {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -27,24 +29,29 @@ function Navbar() {
 
     const pathname = usePathname();
 
-    // Check authentication status
+    // Check authentication status from cookies
     useEffect(() => {
         const checkAuthStatus = () => {
-            const token = localStorage.getItem('authToken');
+            const token = getCookie('authToken'); // Use cookie instead of localStorage
             setIsAuthenticated(!!token);
         };
 
         // Check initially
         checkAuthStatus();
 
-        // Listen for storage changes (in case token is set/removed in other tabs)
-        window.addEventListener('storage', checkAuthStatus);
-        
-        // Check on route changes
+        // Create a custom event listener for cookie changes
+        const handleCookieChange = () => {
+            checkAuthStatus();
+        };
+
+        // Check frequently for cookie changes
         const interval = setInterval(checkAuthStatus, 1000);
 
+        // Add a custom event for cookie changes
+        window.addEventListener('cookieChange', handleCookieChange);
+
         return () => {
-            window.removeEventListener('storage', checkAuthStatus);
+            window.removeEventListener('cookieChange', handleCookieChange);
             clearInterval(interval);
         };
     }, []);
@@ -87,12 +94,30 @@ function Navbar() {
         setIsMenuOpen(false);
     };
 
-    // Handle logout
+    // Helper function to dispatch cookie change event
+    const dispatchCookieChange = () => {
+        window.dispatchEvent(new Event('cookieChange'));
+    };
+
+    // Handle logout - Remove cookies
     const handleLogout = () => {
+        // Remove all auth cookies
+        removeCookie('authToken');
+        removeCookie('userData');
+        removeCookie('refreshToken');
+        
+        // Clear localStorage for backward compatibility (optional)
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
+        
+        // Update authentication state
         setIsAuthenticated(false);
-        window.location.reload(); // Refresh to update the UI
+        
+        // Dispatch cookie change event
+        dispatchCookieChange();
+        
+        // Redirect to home page
+        window.location.href = '/';
     };
 
     return (
@@ -155,13 +180,13 @@ function Navbar() {
                     ) : (
                         <>
                             <li
-                                onClick={openLoginModal} // Use context function
+                                onClick={openLoginModal}
                                 className="hover:text-blue-300 cursor-pointer border border-[#007ED6] py-2 px-6 rounded-lg transition-all duration-300 hover:bg-[#007ED6]/10 hover:border-[#007ED6]/80 hover:scale-105"
                             >
                                 Sign In
                             </li>
                             <li
-                                onClick={openRegisterModal} // Use context function
+                                onClick={openRegisterModal}
                                 className="bg-[#007ED6] px-6 py-2 rounded hover:bg-[#007ED6]/90 cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#007ED6]/40"
                             >
                                 Sign Up
@@ -237,7 +262,7 @@ function Navbar() {
                                     <>
                                         <button 
                                             onClick={() => {
-                                                openLoginModal(); // Use context function
+                                                openLoginModal();
                                                 setIsMenuOpen(false);
                                             }} 
                                             className="hover:text-blue-300 cursor-pointer border-2 border-[#007ED6] py-4 px-8 rounded-xl text-lg font-semibold transition-all duration-300 hover:bg-[#007ED6]/10 hover:border-[#007ED6]/80 hover:scale-105"
@@ -246,7 +271,7 @@ function Navbar() {
                                         </button>
                                         <button 
                                             onClick={() => {
-                                                openRegisterModal(); // Use context function
+                                                openRegisterModal();
                                                 setIsMenuOpen(false);
                                             }} 
                                             className="bg-[#007ED6] px-8 py-4 rounded-xl hover:bg-[#007ED6]/90 cursor-pointer text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#007ED6]/40"
@@ -272,22 +297,22 @@ function Navbar() {
                 {/* Modals - Use the activeModal from context */}
                 {activeModal === "login" && (
                     <LoginModal
-                        onClose={closeModal} // Use context function
-                        onSwitchToRegister={openRegisterModal} // Use context function
+                        onClose={closeModal}
+                        onSwitchToRegister={openRegisterModal}
                         setActiveModal={setActiveModal}
                     />
                 )}
 
                 {activeModal === "register" && (
                     <RegisterModal
-                        onClose={closeModal} // Use context function
-                        onSwitchToLogin={openLoginModal} // Use context function
+                        onClose={closeModal}
+                        onSwitchToLogin={openLoginModal}
                     />
                 )}
 
                 {activeModal === "forgotPassword" && (
                     <ForgotPasswordModal
-                        onClose={closeModal} // Use context function
+                        onClose={closeModal}
                     />
                 )}
 

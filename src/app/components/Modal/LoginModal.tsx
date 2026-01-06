@@ -221,6 +221,7 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
 
                 if (data.user) {
                     localStorage.setItem("userData", JSON.stringify(data.user));
+                    
                 }
 
                 // Store remember me preference if needed
