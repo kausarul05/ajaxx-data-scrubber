@@ -501,7 +501,7 @@ export default function Page() {
 
                 const data = await apiRequest<SubscriptionData>(
                     "GET",
-                    "/payment/payments/current-subscription/",
+                    "/payment/current-subscription/",
                     null,
                     {
                         headers: {

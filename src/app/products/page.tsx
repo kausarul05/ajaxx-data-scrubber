@@ -43,11 +43,11 @@ export default function Products() {
                     "GET",
                     "/product/api/Product-all/",
                     null,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem("authToken")}`
-                        }
-                    }
+                    // {
+                    //     headers: {
+                    //         Authorization: `Bearer ${localStorage.getItem("authToken")}`
+                    //     }
+                    // }
                 );
 
                 let productsData: Product[] = [];

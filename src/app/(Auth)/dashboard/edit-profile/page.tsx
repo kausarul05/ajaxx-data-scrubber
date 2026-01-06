@@ -299,9 +299,12 @@ export default function Profile() {
             localStorage.clear();
             window.location.href = '/';
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error deleting account:", error);
-            setDeleteError(error.message || "Failed to delete account. Please try again.");
+             const errorMessage = error instanceof Error 
+                ? error.message 
+                : "Failed to delete account. Please try again.";
+            setDeleteError(errorMessage || "Failed to delete account. Please try again.");
         } finally {
             setDeleting(false);
             setShowDeleteModal(false);

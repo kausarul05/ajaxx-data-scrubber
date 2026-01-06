@@ -240,11 +240,11 @@ export default function LoginModal({ onClose, onSwitchToRegister, setActiveModal
                 setError(data.message || "Login failed. Please check your credentials.");
             }
         } catch (err) {
-            const errorObj = err as { error?: string; message?: string };
+            const errorObj = err as { error?: string; message?: string; data?: { error?: string } };
             // console.log("Login error:",err?.data?.error);
             // Handle specific error messages from your API
-            if (err) {
-                setError(err?.data?.error);
+            if (err && typeof err === 'object' && 'data' in err) {
+                setError((err as { data?: { error?: string } }).data?.error || "Login failed. Please try again.");
             }
         } finally {
             setIsLoading(false);
