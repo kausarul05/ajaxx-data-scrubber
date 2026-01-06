@@ -89,7 +89,7 @@ export default function Pricing() {
         }
 
         // Map API data to your existing structure
-        return subscriptions.slice(0, 4).map((subscription, index) => {
+        return subscriptions.map((subscription, index) => {
             // const planNames = ["Basic", "Silver", "Gold", "Annual Plan"];
 
             // Use actual features from API
