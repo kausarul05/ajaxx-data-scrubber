@@ -21,6 +21,7 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/app/lib/api";
 import axios from 'axios'; // Import axios properly
+import { form } from "@heroui/theme";
 
 // Remove unused type
 // type ServiceData = {
@@ -197,6 +198,294 @@ export default function Page() {
     const [memberUUID, setMemberUUID] = useState("")
     const router = useRouter();
 
+    // Country code mapping (you can expand this as needed)
+    const countryCodeMap: { [key: string]: string } = {
+        'afghanistan': 'AF',
+        'albania': 'AL',
+        'algeria': 'DZ',
+        'american samoa': 'AS',
+        'andorra': 'AD',
+        'angola': 'AO',
+        'anguilla': 'AI',
+        'antarctica': 'AQ',
+        'antigua and barbuda': 'AG',
+        'argentina': 'AR',
+        'armenia': 'AM',
+        'aruba': 'AW',
+        'australia': 'AU',
+        'austria': 'AT',
+        'azerbaijan': 'AZ',
+        'bahamas': 'BS',
+        'bahrain': 'BH',
+        'bangladesh': 'BD',
+        'barbados': 'BB',
+        'belarus': 'BY',
+        'belgium': 'BE',
+        'belize': 'BZ',
+        'benin': 'BJ',
+        'bermuda': 'BM',
+        'bhutan': 'BT',
+        'bolivia': 'BO',
+        'bosnia and herzegovina': 'BA',
+        'botswana': 'BW',
+        'bouvet island': 'BV',
+        'brazil': 'BR',
+        'british indian ocean territory': 'IO',
+        'brunei darussalam': 'BN',
+        'bulgaria': 'BG',
+        'burkina faso': 'BF',
+        'burundi': 'BI',
+        'cabo verde': 'CV',
+        'cambodia': 'KH',
+        'cameroon': 'CM',
+        'canada': 'CA',
+        'cayman islands': 'KY',
+        'central african republic': 'CF',
+        'chad': 'TD',
+        'chile': 'CL',
+        'china': 'CN',
+        'christmas island': 'CX',
+        'cocos islands': 'CC',
+        'colombia': 'CO',
+        'comoros': 'KM',
+        'congo': 'CG',
+        'congo, democratic republic': 'CD',
+        'cook islands': 'CK',
+        'costa rica': 'CR',
+        'cote d\'ivoire': 'CI',
+        'croatia': 'HR',
+        'cuba': 'CU',
+        'curacao': 'CW',
+        'cyprus': 'CY',
+        'czech republic': 'CZ',
+        'denmark': 'DK',
+        'djibouti': 'DJ',
+        'dominica': 'DM',
+        'dominican republic': 'DO',
+        'ecuador': 'EC',
+        'egypt': 'EG',
+        'el salvador': 'SV',
+        'equatorial guinea': 'GQ',
+        'eritrea': 'ER',
+        'estonia': 'EE',
+        'eswatini': 'SZ',
+        'ethiopia': 'ET',
+        'falkland islands': 'FK',
+        'faroe islands': 'FO',
+        'fiji': 'FJ',
+        'finland': 'FI',
+        'france': 'FR',
+        'french guiana': 'GF',
+        'french polynesia': 'PF',
+        'french southern territories': 'TF',
+        'gabon': 'GA',
+        'gambia': 'GM',
+        'georgia': 'GE',
+        'germany': 'DE',
+        'ghana': 'GH',
+        'gibraltar': 'GI',
+        'greece': 'GR',
+        'greenland': 'GL',
+        'grenada': 'GD',
+        'guadeloupe': 'GP',
+        'guam': 'GU',
+        'guatemala': 'GT',
+        'guernsey': 'GG',
+        'guinea': 'GN',
+        'guinea-bissau': 'GW',
+        'guyana': 'GY',
+        'haiti': 'HT',
+        'heard island and mcdonald islands': 'HM',
+        'holy see': 'VA',
+        'honduras': 'HN',
+        'hong kong': 'HK',
+        'hungary': 'HU',
+        'iceland': 'IS',
+        'india': 'IN',
+        'indonesia': 'ID',
+        'iran': 'IR',
+        'iraq': 'IQ',
+        'ireland': 'IE',
+        'isle of man': 'IM',
+        'israel': 'IL',
+        'italy': 'IT',
+        'jamaica': 'JM',
+        'japan': 'JP',
+        'jersey': 'JE',
+        'jordan': 'JO',
+        'kazakhstan': 'KZ',
+        'kenya': 'KE',
+        'kiribati': 'KI',
+        'korea, north': 'KP',
+        'korea, south': 'KR',
+        'kuwait': 'KW',
+        'kyrgyzstan': 'KG',
+        'lao people\'s democratic republic': 'LA',
+        'latvia': 'LV',
+        'lebanon': 'LB',
+        'lesotho': 'LS',
+        'liberia': 'LR',
+        'libya': 'LY',
+        'liechtenstein': 'LI',
+        'lithuania': 'LT',
+        'luxembourg': 'LU',
+        'macao': 'MO',
+        'madagascar': 'MG',
+        'malawi': 'MW',
+        'malaysia': 'MY',
+        'maldives': 'MV',
+        'mali': 'ML',
+        'malta': 'MT',
+        'marshall islands': 'MH',
+        'martinique': 'MQ',
+        'mauritania': 'MR',
+        'mauritius': 'MU',
+        'mayotte': 'YT',
+        'mexico': 'MX',
+        'micronesia': 'FM',
+        'moldova': 'MD',
+        'monaco': 'MC',
+        'mongolia': 'MN',
+        'montenegro': 'ME',
+        'montserrat': 'MS',
+        'morocco': 'MA',
+        'mozambique': 'MZ',
+        'myanmar': 'MM',
+        'namibia': 'NA',
+        'nauru': 'NR',
+        'nepal': 'NP',
+        'netherlands': 'NL',
+        'new caledonia': 'NC',
+        'new zealand': 'NZ',
+        'nicaragua': 'NI',
+        'niger': 'NE',
+        'nigeria': 'NG',
+        'niue': 'NU',
+        'norfolk island': 'NF',
+        'north macedonia': 'MK',
+        'northern mariana islands': 'MP',
+        'norway': 'NO',
+        'oman': 'OM',
+        'pakistan': 'PK',
+        'palau': 'PW',
+        'palestine': 'PS',
+        'panama': 'PA',
+        'papua new guinea': 'PG',
+        'paraguay': 'PY',
+        'peru': 'PE',
+        'philippines': 'PH',
+        'pitcairn': 'PN',
+        'poland': 'PL',
+        'portugal': 'PT',
+        'puerto rico': 'PR',
+        'qatar': 'QA',
+        'reunion': 'RE',
+        'romania': 'RO',
+        'russia': 'RU',
+        'rwanda': 'RW',
+        'saint barthelemy': 'BL',
+        'saint helena, ascension and tristan da cunha': 'SH',
+        'saint kitts and nevis': 'KN',
+        'saint lucia': 'LC',
+        'saint martin': 'MF',
+        'saint pierre and miquelon': 'PM',
+        'saint vincent and the grenadines': 'VC',
+        'samoa': 'WS',
+        'san marino': 'SM',
+        'sao tome and principe': 'ST',
+        'saudi arabia': 'SA',
+        'senegal': 'SN',
+        'serbia': 'RS',
+        'seychelles': 'SC',
+        'sierra leone': 'SL',
+        'singapore': 'SG',
+        'sint maarten': 'SX',
+        'slovakia': 'SK',
+        'slovenia': 'SI',
+        'solomon islands': 'SB',
+        'somalia': 'SO',
+        'south africa': 'ZA',
+        'south georgia and the south sandwich islands': 'GS',
+        'south sudan': 'SS',
+        'spain': 'ES',
+        'sri lanka': 'LK',
+        'sudan': 'SD',
+        'suriname': 'SR',
+        'svalbard and jan mayen': 'SJ',
+        'sweden': 'SE',
+        'switzerland': 'CH',
+        'syria': 'SY',
+        'taiwan': 'TW',
+        'tajikistan': 'TJ',
+        'tanzania': 'TZ',
+        'thailand': 'TH',
+        'timor-leste': 'TL',
+        'togo': 'TG',
+        'tokelau': 'TK',
+        'tonga': 'TO',
+        'trinidad and tobago': 'TT',
+        'tunisia': 'TN',
+        'turkey': 'TR',
+        'turkmenistan': 'TM',
+        'turks and caicos islands': 'TC',
+        'tuvalu': 'TV',
+        'uganda': 'UG',
+        'ukraine': 'UA',
+        'united arab emirates': 'AE',
+        'united kingdom': 'GB',
+        'united states': 'US',
+        'united states minor outlying islands': 'UM',
+        'uruguay': 'UY',
+        'uzbekistan': 'UZ',
+        'vanuatu': 'VU',
+        'venezuela': 'VE',
+        'viet nam': 'VN',
+        'virgin islands, british': 'VG',
+        'virgin islands, u.s.': 'VI',
+        'wallis and futuna': 'WF',
+        'western sahara': 'EH',
+        'yemen': 'YE',
+        'zambia': 'ZM',
+        'zimbabwe': 'ZW'
+    };
+
+    // Helper function to get country code
+    const getCountryCode = (input: string): string => {
+        if (!input) return '';
+
+        const trimmed = input.trim();
+
+        // If already 2 characters (likely a code), return uppercase
+        if (trimmed.length === 2) {
+            return trimmed.toUpperCase();
+        }
+
+        // Check if input matches a country name
+        const lowerInput = trimmed.toLowerCase();
+        if (countryCodeMap[lowerInput]) {
+            return countryCodeMap[lowerInput];
+        }
+
+        // Return first 2 characters uppercase if longer than 2
+        if (trimmed.length > 2) {
+            return trimmed.substring(0, 2).toUpperCase();
+        }
+
+        return trimmed.toUpperCase();
+    };
+
+    // Helper function to limit state to 2 characters
+    const formatState = (input: string): string => {
+        if (!input) return '';
+
+        const trimmed = input.trim();
+        if (trimmed.length > 2) {
+            return trimmed.substring(0, 2).toUpperCase();
+        }
+
+        return trimmed.toUpperCase();
+    };
+
     // Get user email from localStorage or auth token when component mounts
     useEffect(() => {
         const getUserEmail = () => {
@@ -260,6 +549,8 @@ export default function Page() {
                     }
                 }
             );
+
+            console.log("response", response)
 
             if (response.success && response.data) {
                 // Store only the data portion
@@ -729,7 +1020,7 @@ export default function Page() {
         setLoading(true);
 
         // Simple validation
-        if (!formData.email || !formData.first_name) {
+        if (!formData.email && !formData.first_name && !formData.last_name && !formData.middle_name && !formData.city && !formData.country && !formData.state && !formData.plan && !formData.address_line1 && !formData.zipcode) {
             toast.error("Please fill required fields!");
             setLoading(false);
             return;
@@ -756,6 +1047,8 @@ export default function Page() {
                 zip_code: formData.zipcode
             };
 
+            // console.log("Submmiting form", payload);
+
             const token = localStorage.getItem("authToken");
             const result = await apiRequest<MemberData>(
                 "POST",
@@ -768,8 +1061,10 @@ export default function Page() {
                 }
             );
 
-            console.log(result?.data?.optery_response?.uuid)
-            if (result.success && result.data) {
+            // console.log("result", result)
+
+
+            if (result.success || result.data) {
                 setFormSubmitted(true);
                 setShowFormModal(false);
                 localStorage.setItem("uuid", result.data.optery_response?.uuid || '');
@@ -777,7 +1072,8 @@ export default function Page() {
                 toast.success("Member added successfully! You can now start the scan.");
 
                 // Start scan automatically after form submission
-                await startDataScan();
+                // await startDataScan();
+                window.location.reload(); // Reload to reflect new member data
             } else {
                 toast.error(`Failed to add member: ${result.message || "Unknown error"}`);
             }
@@ -790,11 +1086,32 @@ export default function Page() {
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+
+        // Special handling for country field
+        if (name === 'country') {
+            const formattedValue = getCountryCode(value);
+            setFormData(prev => ({
+                ...prev,
+                [name]: formattedValue
+            }));
+        }
+        // Special handling for state field
+        else if (name === 'state') {
+            const formattedValue = formatState(value);
+            setFormData(prev => ({
+                ...prev,
+                [name]: formattedValue
+            }));
+        }
+        // Regular handling for other fields
+        else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
     };
 
     const handleView = (screenshot: Screenshot) => {
@@ -1139,6 +1456,7 @@ export default function Page() {
                                         value={formData.last_name}
                                         onChange={handleInputChange}
                                         className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                        required
                                     />
                                 </div>
                             </div>
@@ -1150,6 +1468,7 @@ export default function Page() {
                                     value={formData.middle_name}
                                     onChange={handleInputChange}
                                     className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    required
                                 />
                             </div>
 
@@ -1161,27 +1480,40 @@ export default function Page() {
                                         value={formData.city}
                                         onChange={handleInputChange}
                                         className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                        required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-2">Country</label>
+                                    <label className="block text-sm font-medium mb-2">Country *</label>
                                     <input
                                         name="country"
                                         value={formData.country}
                                         onChange={handleInputChange}
-                                        className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                        maxLength={2}
+                                        className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors uppercase"
+                                        placeholder="US, UK, BD, etc."
+                                        required
                                     />
+                                    <small className="text-gray-400 text-xs mt-1">
+                                        2-letter country code (e.g., US for United States)
+                                    </small>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-2">State</label>
+                                <label className="block text-sm font-medium mb-2">State *</label>
                                 <input
                                     name="state"
                                     value={formData.state}
                                     onChange={handleInputChange}
-                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    maxLength={2}
+                                    className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors uppercase"
+                                    placeholder="CA, NY, etc."
+                                    required
                                 />
+                                <small className="text-gray-400 text-xs mt-1">
+                                    2-letter state code
+                                </small>
                             </div>
 
                             {/* Birthday */}
@@ -1198,6 +1530,7 @@ export default function Page() {
                                             placeholder="Day"
                                             min="1"
                                             max="31"
+                                            required
                                         />
                                     </div>
                                     <div>
@@ -1210,6 +1543,7 @@ export default function Page() {
                                             placeholder="Month"
                                             min="1"
                                             max="12"
+                                            required
                                         />
                                     </div>
                                     <div>
@@ -1222,12 +1556,13 @@ export default function Page() {
                                             placeholder="Year"
                                             min="1900"
                                             max="2024"
+                                            required
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div>
+                            {/* <div>
                                 <label className="block text-sm font-medium mb-2">Plan ID</label>
                                 <input
                                     name="plan"
@@ -1241,7 +1576,7 @@ export default function Page() {
                                         Active Plan: {currentPlan.plan.title} (${currentPlan.plan.price}/{currentPlan.plan.billing_cycle})
                                     </p>
                                 )}
-                            </div>
+                            </div> */}
 
                             <div>
                                 <label className="block text-sm font-medium mb-2">Postpone Scan (days)</label>
@@ -1253,10 +1588,11 @@ export default function Page() {
                                     className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
                                     placeholder="0 for immediate scan"
                                     min="0"
+                                    required
                                 />
                             </div>
 
-                            <div>
+                            {/* <div>
                                 <label className="block text-sm font-medium mb-2">Group Tag</label>
                                 <input
                                     name="group_tag"
@@ -1265,7 +1601,7 @@ export default function Page() {
                                     className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
                                     placeholder="Family-A"
                                 />
-                            </div>
+                            </div> */}
 
                             <div>
                                 <label className="block text-sm font-medium mb-2">Address Line 1</label>
@@ -1274,6 +1610,7 @@ export default function Page() {
                                     value={formData.address_line1}
                                     onChange={handleInputChange}
                                     className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    required
                                 />
                             </div>
 
@@ -1284,6 +1621,7 @@ export default function Page() {
                                     value={formData.address_line2}
                                     onChange={handleInputChange}
                                     className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    required
                                 />
                             </div>
 
@@ -1294,6 +1632,7 @@ export default function Page() {
                                     value={formData.zipcode}
                                     onChange={handleInputChange}
                                     className="w-full p-3 bg-[#0B2233] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors"
+                                    required
                                 />
                             </div>
 
