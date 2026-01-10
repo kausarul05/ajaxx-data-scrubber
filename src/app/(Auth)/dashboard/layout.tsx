@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, History, Star, User, Lock, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, History, Star, User, Lock, LogOut, Menu, DollarSign } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState } from "react";
@@ -11,7 +11,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const menuItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/subscriptions", icon: History, label: "Subscriptions" },
+    { href: "/dashboard/subscriptions", icon: DollarSign, label: "Subscriptions" },
     { href: "/dashboard/history", icon: History, label: "History" },
     { href: "/dashboard/review", icon: Star, label: "Review" },
     { href: "/dashboard/edit-profile", icon: User, label: "Edit Profile" },
