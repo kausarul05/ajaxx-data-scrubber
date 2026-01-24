@@ -898,16 +898,14 @@ export default function Page() {
     };
 
     const handleClick = async () => {
-        // ALWAYS check the API first, regardless of localStorage
         if (currentPlan === null) {
             toast.error("Please subscribe to a plan before starting a scan.");
             router.push("/pricing")
             return;
         }
 
-        // Check if we have member data (not the API response wrapper, just the data)
+        // If no member data exists, show the form modal
         if (!memberData) {
-            // If no member data exists in API, show the form modal
             setShowFormModal(true);
             return;
         }
@@ -922,7 +920,7 @@ export default function Page() {
             setClicked(true);
             setScanning(true);
 
-            // Call the data scans API using apiRequest
+            // Call the data scans API
             const token = localStorage.getItem("authToken");
             const scanResult = await apiRequest<ScanResponse>(
                 "GET",
@@ -935,20 +933,30 @@ export default function Page() {
                 }
             );
 
-            // Extract the data from the API response
-            if (scanResult.success && scanResult.data) {
-                setScanData(scanResult.data);
-            } else {
-                setScanData(null);
-            }
-
             // Simulate scanning process
             setTimeout(() => setClicked(false), 800);
 
             setTimeout(() => {
                 setScanning(false);
-                setShowServices(true);
-                toast.success("Scan completed successfully!");
+
+                // Check if we have scan data
+                if (scanResult.success && scanResult.data) {
+                    setScanData(scanResult.data);
+
+                    // Store scan ID if available for history
+                    if (scanResult.data.scans?.[0]?.scan_id) {
+                        localStorage.setItem('latestScanId', scanResult.data.scans[0].scan_id);
+                    }
+                }
+
+                // ALWAYS redirect to history page after scan
+                toast.success("Scan completed! Redirecting to history...");
+
+                // Wait a moment then redirect
+                setTimeout(() => {
+                    router.push('/dashboard/history');
+                }, 1500);
+
             }, 2000);
 
         } catch (error) {
@@ -1068,12 +1076,12 @@ export default function Page() {
                 setFormSubmitted(true);
                 setShowFormModal(false);
                 localStorage.setItem("uuid", result.data.optery_response?.uuid || '');
-                setMemberData(result.data); // Update member data state
-                toast.success("Member added successfully! You can now start the scan.");
+                setMemberData(result.data);
+                setMemberUUID(result.data.optery_response?.uuid || '');
+                toast.success("Member added successfully! Starting scan...");
 
                 // Start scan automatically after form submission
-                // await startDataScan();
-                window.location.reload(); // Reload to reflect new member data
+                await startDataScan();
             } else {
                 toast.error(`Failed to add member: ${result.message || "Unknown error"}`);
             }
