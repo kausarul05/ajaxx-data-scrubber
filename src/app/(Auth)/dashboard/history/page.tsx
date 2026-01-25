@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
     MoreVertical,
     Download,
@@ -20,6 +20,8 @@ import { apiRequest } from "@/app/lib/api";
 import Image from 'next/image';
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { Plus, Search } from "lucide-react";
+import axios from 'axios';
 
 interface DatabrokerData {
     has_name_data: boolean;
@@ -75,7 +77,346 @@ export default function HistoryPage() {
     const [selectedScreenshot, setSelectedScreenshot] = useState<ScreenshotData | null>(null);
     const [deletingItem, setDeletingItem] = useState<string | null>(null);
     const modalRef = useRef<HTMLDivElement>(null);
+    const [showCustomRemovalModal, setShowCustomRemovalModal] = useState(false);
+    const [customRemovals, setCustomRemovals] = useState<any[]>([]);
+    const [customRemovalsLoading, setCustomRemovalsLoading] = useState(false);
+    const [submittingRemoval, setSubmittingRemoval] = useState(false);
+    const [removalFormData, setRemovalFormData] = useState({
+        exposed_url: "",
+        search_engine_url: "",
+        search_keywords: "",
+        additional_information: ""
+    });
+    const [proofFile, setProofFile] = useState<File | null>(null);
+    const [isDragOver, setIsDragOver] = useState(false);
+    const [draggedImage, setDraggedImage] = useState<string | null>(null);
+    const [activeRemovalTab, setActiveRemovalTab] = useState<'all' | 'in-progress'>('all');
+    const [memberUUID, setMemberUUID] = useState("");
+    const [selectedScreenshotForRemoval, setSelectedScreenshotForRemoval] = useState<ScreenshotData | null>(null);
     const router = useRouter();
+
+
+    useEffect(() => {
+        const userInfo = localStorage.getItem("userData");
+        if (userInfo) {
+            try {
+                const user = JSON.parse(userInfo);
+                // Get member UUID from localStorage or from your API
+                const storedUUID = localStorage.getItem("uuid");
+                if (storedUUID) {
+                    setMemberUUID(storedUUID);
+                }
+            } catch (error) {
+                console.error("Error parsing user info:", error);
+            }
+        }
+    }, []);
+
+    // Add the handleRemove function
+    const handleRemove = () => {
+        setShowCustomRemovalModal(true);
+    };
+
+    const downloadScreenshotAsFile = async (imageUrl: string, databrokerName: string): Promise<File | null> => {
+        try {
+            // Create a clean filename from databroker name
+            const cleanName = databrokerName
+                .replace(/[^a-zA-Z0-9]/g, '_')
+                .toLowerCase()
+                .substring(0, 30);
+            const filename = `${cleanName}_screenshot.png`;
+
+            // Fetch the image with CORS mode
+            const response = await fetch(imageUrl, {
+                method: 'GET',
+                mode: 'cors',
+                credentials: 'omit',
+                headers: {
+                    'Accept': 'image/*'
+                }
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+
+                // Create a File object from the blob
+                const file = new File([blob], filename, {
+                    type: blob.type || 'image/png',
+                    lastModified: Date.now()
+                });
+
+                toast.success(`Screenshot downloaded as ${filename}`);
+                return file;
+            } else {
+                throw new Error('Failed to download image');
+            }
+        } catch (error) {
+            console.error('Error downloading screenshot:', error);
+            toast.error('Could not auto-download screenshot. Please upload manually.');
+            return null;
+        }
+    };
+
+    // Add the custom removal fetch function (similar to your dashboard)
+    const fetchCustomRemovals = useCallback(async () => {
+        if (!memberUUID) {
+            toast.error("No member UUID found.");
+            return;
+        }
+
+        try {
+            setCustomRemovalsLoading(true);
+            const token = localStorage.getItem("authToken");
+
+            const response = await apiRequest<any>(
+                "GET",
+                `/data/optery/custom-removals/?member_uuid=${memberUUID}`,
+                null,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (response && typeof response === 'object' && 'items' in response && Array.isArray(response.items)) {
+                setCustomRemovals(response.items);
+            } else {
+                console.error("Invalid response structure:", response);
+                toast.error("Failed to load custom removal requests: Invalid response format");
+            }
+        } catch (error) {
+            console.error("Error fetching custom removals:", error);
+            toast.error("Failed to load custom removal requests.");
+        } finally {
+            setCustomRemovalsLoading(false);
+        }
+    }, [memberUUID]);
+
+    useEffect(() => {
+        if (showCustomRemovalModal && memberUUID) {
+            fetchCustomRemovals();
+        }
+    }, [showCustomRemovalModal, memberUUID, fetchCustomRemovals]);
+
+    // Add the submit removal function (similar to your dashboard)
+    const handleSubmitRemoval = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!memberUUID) {
+            toast.error("No member UUID found.");
+            return;
+        }
+
+        if (!removalFormData.exposed_url) {
+            toast.error("Please provide the exposed URL.");
+            return;
+        }
+
+        if (!proofFile) {
+            toast.error("Please provide proof of exposure.");
+            return;
+        }
+
+        try {
+            setSubmittingRemoval(true);
+
+            const formData = new FormData();
+            formData.append("exposed_url", removalFormData.exposed_url);
+            formData.append("search_engine_url", removalFormData.search_engine_url);
+            formData.append("search_keywords", removalFormData.search_keywords);
+            formData.append("additional_information", removalFormData.additional_information);
+
+            if (draggedImage && proofFile.size === 0) {
+                try {
+                    const response = await fetch(draggedImage, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'image/*',
+                        },
+                        mode: 'cors'
+                    });
+
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const actualFile = new File([blob], proofFile.name, {
+                            type: blob.type,
+                            lastModified: new Date().getTime()
+                        });
+                        formData.append("proof_of_exposure", actualFile);
+                    } else {
+                        formData.append("proof_of_exposure", proofFile);
+                        formData.append("image_url", draggedImage);
+                    }
+                } catch (fetchError) {
+                    console.error('Error fetching image:', fetchError);
+                    formData.append("proof_of_exposure", proofFile);
+                    const updatedInfo = removalFormData.additional_information +
+                        `\n\nImage Source URL: ${draggedImage}`;
+                    formData.set("additional_information", updatedInfo);
+                }
+            } else {
+                formData.append("proof_of_exposure", proofFile);
+            }
+
+            const token = localStorage.getItem("authToken");
+            const baseURL = 'https://backend.ajaxxdatascrubber.com';
+
+            const response = await axios.post(
+                `${baseURL}/data/custom-removal/?member_uuid=${memberUUID}`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (response.data) {
+                toast.success("Custom removal request submitted successfully!");
+
+                // Reset form
+                setRemovalFormData({
+                    exposed_url: "",
+                    search_engine_url: "",
+                    search_keywords: "",
+                    additional_information: ""
+                });
+                setProofFile(null);
+                setDraggedImage(null);
+
+                // Refresh the list
+                fetchCustomRemovals();
+            } else {
+                throw new Error('No response data received');
+            }
+
+        } catch (error: any) {
+            console.error("Error submitting removal request:", error);
+            toast.error(`Failed to submit removal request: ${error.message}`);
+        } finally {
+            setSubmittingRemoval(false);
+        }
+    };
+
+    // Add the input change handler
+    const handleRemovalInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setRemovalFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    // Add the file select handler
+    const handleFileSelect = (file: File) => {
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            toast.error("Please select a valid image file (JPG, PNG, or WebP).");
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error("File size must be less than 10MB.");
+            return;
+        }
+
+        setProofFile(file);
+        toast.success("Image uploaded successfully!");
+    };
+
+    // Add the drag and drop handlers
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            if (file.type.startsWith('image/')) {
+                handleFileSelect(file);
+            } else {
+                toast.error("Please drop an image file (JPG, PNG, WebP)");
+            }
+        }
+    };
+
+    // Add the filtered removals function
+    const getFilteredRemovals = () => {
+        if (!customRemovals || !Array.isArray(customRemovals)) return [];
+
+        return customRemovals.filter(item => {
+            if (!item || !item.status) return false;
+
+            const status = String(item.status).toLowerCase().trim();
+
+            switch (activeRemovalTab) {
+                case 'in-progress':
+                    return status.includes("progress") || status.includes("in_progress") ||
+                        status === "in progress" || status === "submitted";
+                default:
+                    return true;
+            }
+        });
+    };
+
+    // Add the getStatusBadge function for custom removals
+    const getCustomStatusBadge = (status: string | number) => {
+        const statusString = String(status || "submitted").toLowerCase();
+
+        const statusConfig: { [key: string]: { color: string; bgColor: string } } = {
+            "submitted": { color: "text-blue-400", bgColor: "bg-blue-500/20 border-blue-500/30" },
+            "in progress": { color: "text-yellow-400", bgColor: "bg-yellow-500/20 border-yellow-500/30" },
+            "in_progress": { color: "text-yellow-400", bgColor: "bg-yellow-500/20 border-yellow-500/30" },
+            "progress": { color: "text-yellow-400", bgColor: "bg-yellow-500/20 border-yellow-500/30" },
+            "removed": { color: "text-green-400", bgColor: "bg-green-500/20 border-green-500/30" },
+            "completed": { color: "text-green-400", bgColor: "bg-green-500/20 border-green-500/30" },
+            "rejected": { color: "text-red-400", bgColor: "bg-red-500/20 border-red-500/30" }
+        };
+
+        const config = statusConfig[statusString] || statusConfig["submitted"];
+
+        return (
+            <span className={`${config.bgColor} ${config.color} text-xs px-2 py-1 rounded-full border capitalize`}>
+                {statusString === 'in_progress' ? 'In Process' : statusString.replace('_', ' ')}
+            </span>
+        );
+    };
+
+    // Add the image download function
+    const downloadImage = async (imageUrl: string, filename: string) => {
+        try {
+            const response = await fetch(imageUrl, {
+                method: 'GET',
+                mode: 'cors',
+                credentials: 'omit'
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                toast.success(`Image downloaded as ${filename}`);
+            } else {
+                throw new Error('Network response was not ok');
+            }
+        } catch (error) {
+            console.error('Error downloading image:', error);
+            const newTab = window.open(imageUrl, '_blank');
+            if (!newTab) {
+                toast.error('Please allow popups to download the image');
+            }
+        }
+    };
+
 
     // Fetch history data from API
     const fetchHistoryData = async () => {
@@ -85,23 +426,23 @@ export default function HistoryPage() {
             setLoading(false);
             return;
         }
-        
+
         try {
             const user = JSON.parse(userInfo);
             setLoading(true);
             setError(null);
-            
+
             // Make the API request - the response is directly an array
             const response = await apiRequest<HistoryItem[]>(
-                "GET", 
+                "GET",
                 `/data/optery/history/${user?.email}/`
             );
-            
+
             console.log("API Response:", response);
-            
+
             // Handle the response based on its structure
             let data: HistoryItem[] = [];
-            
+
             if (Array.isArray(response)) {
                 // Response is directly an array
                 data = response;
@@ -109,7 +450,7 @@ export default function HistoryPage() {
                 // Check if response has a data property
                 if ('data' in response && Array.isArray(response.data)) {
                     data = response.data as HistoryItem[];
-                } 
+                }
                 // Check if response has a history property (old structure)
                 else if ('history' in response && Array.isArray(response.history)) {
                     data = response.history as HistoryItem[];
@@ -121,18 +462,18 @@ export default function HistoryPage() {
                     }
                 }
             }
-            
+
             // Ensure each item has raw_screenshot_data as an array
             const processedData = data.map(item => ({
                 ...item,
-                raw_screenshot_data: Array.isArray(item.raw_screenshot_data) 
-                    ? item.raw_screenshot_data 
+                raw_screenshot_data: Array.isArray(item.raw_screenshot_data)
+                    ? item.raw_screenshot_data
                     : []
             }));
-            
+
             console.log("Processed history data:", processedData);
             setHistoryData(processedData);
-            
+
         } catch (err) {
             setError("Failed to load history data");
             console.error("Error fetching history:", err);
@@ -197,7 +538,7 @@ export default function HistoryPage() {
     // Get service icon
     const getServiceIcon = (brokerName: string, size: number = 20) => {
         const lowerName = brokerName.toLowerCase();
-        
+
         if (lowerName.includes('facebook') || lowerName.includes('people') || lowerName.includes('search')) {
             return <Facebook size={size} className="text-blue-500" />;
         } else if (lowerName.includes('amazon') || lowerName.includes('shopping')) {
@@ -262,13 +603,13 @@ export default function HistoryPage() {
     // Function to delete a specific screenshot from history
     const deleteScreenshot = async (databrokerUuid: string, scanId: string) => {
         if (!databrokerUuid || !scanId) return;
-        
+
         try {
             setDeletingItem(databrokerUuid);
-            
+
             // Call API to delete the screenshot
             const token = localStorage.getItem("authToken");
-            
+
             const response = await apiRequest(
                 "DELETE",
                 `/data/optery/screenshot/${databrokerUuid}/`,
@@ -279,12 +620,12 @@ export default function HistoryPage() {
                     }
                 }
             );
-            
+
             if (response.success) {
                 toast.success("Removed successfully!");
-                
+
                 // Remove from local state
-                setHistoryData(prevData => 
+                setHistoryData(prevData =>
                     prevData.map(historyItem => {
                         if (historyItem.scan_id === scanId) {
                             return {
@@ -297,7 +638,7 @@ export default function HistoryPage() {
                         return historyItem;
                     }).filter(historyItem => historyItem.raw_screenshot_data.length > 0)
                 );
-                
+
                 // Close modal if open
                 setModalOpen(false);
                 setShowScanDetailsModal(false);
@@ -315,13 +656,13 @@ export default function HistoryPage() {
     // Function to delete entire scan history
     const deleteScanHistory = async (scanId: string) => {
         if (!scanId) return;
-        
+
         try {
             setDeletingItem(scanId);
-            
+
             // Call API to delete the scan history
             const token = localStorage.getItem("authToken");
-            
+
             const response = await apiRequest(
                 "DELETE",
                 `/data/optery/history/${scanId}/`,
@@ -332,12 +673,12 @@ export default function HistoryPage() {
                     }
                 }
             );
-            
+
             if (response.success) {
                 toast.success("Scan history removed successfully!");
-                
+
                 // Remove from local state
-                setHistoryData(prevData => 
+                setHistoryData(prevData =>
                     prevData.filter(item => item.scan_id !== scanId)
                 );
             } else {
@@ -366,7 +707,7 @@ export default function HistoryPage() {
             doc.setFontSize(12);
             doc.text(`${formatDate(historyItem.created_at)} - ${formatTime(historyItem.created_at)}`, 20, y);
             y += 8;
-            
+
             historyItem.raw_screenshot_data.forEach((screenshot) => {
                 doc.text(`- ${screenshot.databroker_name} (${screenshot.exposure_status_description})`, 25, y);
                 y += 8;
@@ -379,18 +720,18 @@ export default function HistoryPage() {
 
     const downloadSingleItemPDF = (item: ScreenshotData) => {
         if (!item) return;
-        
+
         const doc = new jsPDF();
         doc.setFontSize(16);
         doc.text("Data Broker Report", 20, 20);
-        
+
         doc.setFontSize(12);
         doc.text(`Broker: ${item.databroker_name}`, 20, 40);
         doc.text(`Status: ${item.exposure_status_description}`, 20, 50);
         doc.text(`URL: ${item.url}`, 20, 60);
         doc.text(`Scan ID: ${item.scan_id}`, 20, 70);
         doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 80);
-        
+
         // Add data exposure information
         doc.text("Exposed Data:", 20, 95);
         let dataY = 105;
@@ -401,7 +742,7 @@ export default function HistoryPage() {
                 dataY += 8;
             }
         });
-        
+
         doc.save(`${item.databroker_name}_report.pdf`);
         setModalOpen(false);
     };
@@ -433,13 +774,13 @@ export default function HistoryPage() {
             <div className="min-h-screen bg-[#0A2131] p-4 sm:p-6 lg:p-8 text-white flex items-center justify-center">
                 <div className="text-center text-red-400">
                     <p>{error}</p>
-                    <button 
+                    <button
                         onClick={() => fetchHistoryData()}
                         className="mt-4 bg-[#007ED6] hover:bg-[#026bb7] px-4 py-2 rounded-md transition mr-2"
                     >
                         Retry
                     </button>
-                    <button 
+                    <button
                         onClick={goToDashboard}
                         className="mt-4 bg-cyan-500 hover:bg-cyan-600 px-4 py-2 rounded-md transition"
                     >
@@ -465,11 +806,18 @@ export default function HistoryPage() {
                         >
                             Back to Scan
                         </button>
+
+                        <button
+                            onClick={handleRemove}
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm px-3 py-1.5 rounded-md transition"
+                        >
+                            Request Custom Removal
+                        </button>
                     </div>
 
                     <div className="flex items-center gap-3 lg:gap-4 lg:pr-20">
                         {/* Dropdown */}
-                        <div className="relative">
+                        {/* <div className="relative">
                             <select
                                 value={selectedRange}
                                 onChange={(e) => setSelectedRange(e.target.value)}
@@ -479,7 +827,7 @@ export default function HistoryPage() {
                                 <option>7 DAYS History</option>
                                 <option>30 DAYS History</option>
                             </select>
-                        </div>
+                        </div> */}
 
                         {/* Download button */}
                         <button
@@ -497,7 +845,7 @@ export default function HistoryPage() {
                     {historyData.length === 0 ? (
                         <div className="text-center py-8 text-gray-400">
                             <p className="mb-4">No scan history found</p>
-                            <button 
+                            <button
                                 onClick={goToDashboard}
                                 className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-md transition"
                             >
@@ -515,9 +863,9 @@ export default function HistoryPage() {
                                         <p className="text-sm font-medium">
                                             {formatTime(historyItem.created_at)}
                                         </p>
-                                        <p className="text-sm text-gray-400">
+                                        {/* <p className="text-sm text-gray-400">
                                             Scan ID: {historyItem.scan_id}
-                                        </p>
+                                        </p> */}
                                     </div>
                                     <button
                                         onClick={() => deleteScanHistory(historyItem.scan_id)}
@@ -569,7 +917,7 @@ export default function HistoryPage() {
                                                         <Eye size={16} />
                                                         <span>View</span>
                                                     </button>
-                                                    <button
+                                                    {/* <button
                                                         onClick={() => deleteScreenshot(screenshot.databroker_uuid, historyItem.scan_id)}
                                                         disabled={deletingItem === screenshot.databroker_uuid}
                                                         className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm px-3 py-1.5 rounded-md transition-all duration-300 disabled:opacity-50"
@@ -585,7 +933,7 @@ export default function HistoryPage() {
                                                                 <span>Delete</span>
                                                             </>
                                                         )}
-                                                    </button>
+                                                    </button> */}
                                                     <button
                                                         onClick={(e) => handleMoreClick(e, screenshot, historyItem.scan_id)}
                                                         className="flex items-center gap-2 bg-gray-600 text-white text-sm px-3 py-1.5 rounded-md transition-all duration-300"
@@ -625,10 +973,9 @@ export default function HistoryPage() {
                                 <p className="text-sm text-white">
                                     {selectedItem.url ? new URL(selectedItem.url).hostname : selectedItem.databroker_name.toLowerCase()}
                                 </p>
-                                <p className={`text-xs ${
-                                    selectedItem.exposure_status === 10 ? 
+                                <p className={`text-xs ${selectedItem.exposure_status === 10 ?
                                     'text-red-400' : 'text-green-400'
-                                }`}>
+                                    }`}>
                                     {selectedItem.exposure_status_description}
                                 </p>
                             </div>
@@ -643,7 +990,7 @@ export default function HistoryPage() {
 
                         {/* Menu items */}
                         <div className="p-2">
-                            <button 
+                            <button
                                 onClick={() => {
                                     handleView(selectedItem);
                                     setModalOpen(false);
@@ -653,7 +1000,7 @@ export default function HistoryPage() {
                                 <Eye size={18} className="text-white" />
                                 <span>View Details</span>
                             </button>
-                            <button 
+                            <button
                                 onClick={() => downloadSingleItemPDF(selectedItem)}
                                 className="w-full text-left px-4 py-3 cursor-pointer rounded-lg flex items-center gap-3 text-white transition-colors hover:bg-gray-800"
                             >
@@ -771,7 +1118,7 @@ export default function HistoryPage() {
                                     <button
                                         onClick={() => {
                                             // Find the scan ID from history data
-                                            const historyItem = historyData.find(item => 
+                                            const historyItem = historyData.find(item =>
                                                 item.raw_screenshot_data.some(s => s.databroker_uuid === selectedScreenshot.databroker_uuid)
                                             );
                                             if (historyItem) {
@@ -794,6 +1141,489 @@ export default function HistoryPage() {
                                         )}
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showCustomRemovalModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-modal-fade-in">
+                    <div className="bg-[#0E2A3F] border border-cyan-500/30 rounded-xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-modal-slide-up">
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-white text-2xl font-bold">Custom Removals</h2>
+                                <p className="text-gray-400 text-sm mt-1">
+                                    Submit custom requests for data broker profiles found in your scans
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setShowCustomRemovalModal(false);
+                                    setSelectedScreenshotForRemoval(null);
+                                    setRemovalFormData({
+                                        exposed_url: "",
+                                        search_engine_url: "",
+                                        search_keywords: "",
+                                        additional_information: ""
+                                    });
+                                    setProofFile(null);
+                                }}
+                                className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Left Side - All Scan Data */}
+                            <div className="space-y-6">
+                                <div className="bg-[#0B2233] border border-[#0F3A52] rounded-lg p-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-white text-lg font-semibold">Your Scan Data</h3>
+                                        <span className="text-cyan-400 text-sm">
+                                            Click any item to auto-fill form
+                                        </span>
+                                    </div>
+                                    <p className="text-gray-400 text-sm mb-4">
+                                        Select any item from your scan history to auto-fill the removal request
+                                    </p>
+
+                                    {/* Scan Data List */}
+                                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                                        {historyData.length === 0 ? (
+                                            <div className="text-center py-8 text-gray-400">
+                                                <FileText size={48} className="mx-auto mb-3 opacity-50" />
+                                                <p>No scan data found</p>
+                                                <button
+                                                    onClick={goToDashboard}
+                                                    className="mt-4 bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-md transition"
+                                                >
+                                                    Start a New Scan
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            historyData.map((historyItem) => (
+                                                <div key={historyItem.id} className="border border-[#0F3A52] rounded-lg p-4">
+                                                    {/* History Item Header */}
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <div>
+                                                            <h4 className="text-white font-medium">
+                                                                Scan from {formatDate(historyItem.created_at)}
+                                                            </h4>
+                                                            <p className="text-gray-400 text-xs">
+                                                                {formatTime(historyItem.created_at)}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-cyan-400 text-sm">
+                                                            {historyItem.raw_screenshot_data?.length || 0} items
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Screenshots List */}
+                                                    <div className="space-y-3">
+                                                        {historyItem.raw_screenshot_data && historyItem.raw_screenshot_data.length > 0 ? (
+                                                            historyItem.raw_screenshot_data.map((screenshot) => (
+                                                                <div
+                                                                    key={screenshot.databroker_uuid}
+                                                                    className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 group ${selectedScreenshotForRemoval?.databroker_uuid === screenshot.databroker_uuid
+                                                                        ? 'border-cyan-400 bg-cyan-400/10'
+                                                                        : 'border-[#0F3A52] bg-[#0A1E2E] hover:border-cyan-500/30 hover:bg-cyan-500/5'
+                                                                        }`}
+                                                                    onClick={async () => {
+                                                                        // Set loading state for this item
+                                                                        const loadingToast = toast.loading('Downloading screenshot...');
+
+                                                                        try {
+                                                                            // Set the selected screenshot
+                                                                            setSelectedScreenshotForRemoval(screenshot);
+
+                                                                            // Auto-fill the form with the selected screenshot data
+                                                                            setRemovalFormData(prev => ({
+                                                                                ...prev,
+                                                                                exposed_url: screenshot.url || "",
+                                                                                search_keywords: screenshot.databroker_name,
+                                                                                additional_information: `Automatically generated from scan on ${formatDate(historyItem.created_at)}. Data broker: ${screenshot.databroker_name}. Exposed data: ${Object.entries(screenshot.databroker_data)
+                                                                                    .filter(([_, value]) => value)
+                                                                                    .map(([key]) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))
+                                                                                    .join(', ')}.`
+                                                                            }));
+
+                                                                            // Try to auto-download the screenshot as proof
+                                                                            if (screenshot.image) {
+                                                                                const downloadedFile = await downloadScreenshotAsFile(
+                                                                                    screenshot.image,
+                                                                                    screenshot.databroker_name
+                                                                                );
+
+                                                                                if (downloadedFile) {
+                                                                                    setProofFile(downloadedFile);
+                                                                                    toast.update(loadingToast, {
+                                                                                        render: 'Screenshot auto-added as proof!',
+                                                                                        type: 'success',
+                                                                                        isLoading: false,
+                                                                                        autoClose: 3000
+                                                                                    });
+                                                                                } else {
+                                                                                    toast.update(loadingToast, {
+                                                                                        render: 'Please upload proof image manually',
+                                                                                        type: 'warning',
+                                                                                        isLoading: false,
+                                                                                        autoClose: 3000
+                                                                                    });
+                                                                                }
+                                                                            } else {
+                                                                                toast.update(loadingToast, {
+                                                                                    render: 'No screenshot available. Please upload proof manually.',
+                                                                                    type: 'warning',
+                                                                                    isLoading: false,
+                                                                                    autoClose: 3000
+                                                                                });
+                                                                            }
+                                                                        } catch (error) {
+                                                                            toast.update(loadingToast, {
+                                                                                render: 'Error downloading screenshot. Please upload manually.',
+                                                                                type: 'error',
+                                                                                isLoading: false,
+                                                                                autoClose: 3000
+                                                                            });
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="relative">
+                                                                            <div className="w-8 h-8 rounded flex items-center justify-center">
+                                                                                {getServiceIcon(screenshot.databroker_name)}
+                                                                            </div>
+                                                                            {selectedScreenshotForRemoval?.databroker_uuid === screenshot.databroker_uuid && (
+                                                                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-cyan-400 rounded-full flex items-center justify-center">
+                                                                                    <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                                    </svg>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1">
+                                                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
+                                                                                <span className="text-white font-medium text-sm">
+                                                                                    {screenshot.databroker_name}
+                                                                                </span>
+                                                                                {getStatusBadge(screenshot.exposure_status)}
+                                                                            </div>
+                                                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                                                {getDataBadges(screenshot.databroker_data)}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="text-gray-400 group-hover:text-cyan-400 transition-colors">
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                            </svg>
+                                                                        </div>
+                                                                    </div>
+                                                                    {screenshot.image && (
+                                                                        <p className="text-cyan-400 text-xs mt-2 flex items-center gap-1">
+                                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                            </svg>
+                                                                            Screenshot available - will auto-download on click
+                                                                        </p>
+                                                                    )}
+                                                                    {screenshot.url && (
+                                                                        <p className="text-gray-400 text-xs mt-1 truncate">
+                                                                            URL: {screenshot.url}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div className="text-center py-4 text-gray-400 text-sm">
+                                                                No screenshot data available for this scan
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Side - Submit Removal Request */}
+                            <div className="bg-[#0B2233] border border-[#0F3A52] rounded-lg p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-white text-lg font-semibold flex items-center gap-2">
+                                        <Plus size={20} />
+                                        Submit Removal Request
+                                    </h3>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedScreenshotForRemoval(null);
+                                            setRemovalFormData({
+                                                exposed_url: "",
+                                                search_engine_url: "",
+                                                search_keywords: "",
+                                                additional_information: ""
+                                            });
+                                            setProofFile(null);
+                                        }}
+                                        className="text-gray-400 hover:text-white text-sm px-3 py-1 border border-gray-600 rounded hover:border-gray-400 transition"
+                                    >
+                                        Clear All
+                                    </button>
+                                </div>
+
+                                {/* Selected Item Info */}
+                                {selectedScreenshotForRemoval && (
+                                    <div className="mb-6 p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-cyan-500/20">
+                                                    {getServiceIcon(selectedScreenshotForRemoval.databroker_name, 20)}
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-white font-medium">
+                                                        {selectedScreenshotForRemoval.databroker_name}
+                                                    </h4>
+                                                    <p className="text-cyan-400 text-xs">
+                                                        Selected for removal request
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedScreenshotForRemoval(null);
+                                                    setRemovalFormData({
+                                                        exposed_url: "",
+                                                        search_engine_url: "",
+                                                        search_keywords: "",
+                                                        additional_information: ""
+                                                    });
+                                                    setProofFile(null);
+                                                }}
+                                                className="text-gray-400 hover:text-white p-1"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+
+                                        {/* Auto-generated Info */}
+                                        <div className="grid grid-cols-2 gap-3 mt-3">
+                                            <div className="bg-[#0A1E2E] p-2 rounded border border-[#0F3A52]">
+                                                <p className="text-gray-400 text-xs">Auto-filled URL</p>
+                                                <p className="text-white text-sm truncate">{selectedScreenshotForRemoval.url || "No URL"}</p>
+                                            </div>
+                                            <div className="bg-[#0A1E2E] p-2 rounded border border-[#0F3A52]">
+                                                <p className="text-gray-400 text-xs">Proof Status</p>
+                                                <p className={`text-sm ${proofFile ? 'text-green-400' : 'text-yellow-400'}`}>
+                                                    {proofFile ? 'Auto-added ✓' : 'Manual upload needed'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleSubmitRemoval} className="space-y-4">
+                                    {/* Exposed URL */}
+                                    <div>
+                                        <label className="block text-white text-sm font-medium mb-2">
+                                            Exposed URL *
+                                        </label>
+                                        <input
+                                            type="url"
+                                            name="exposed_url"
+                                            value={removalFormData.exposed_url}
+                                            onChange={handleRemovalInputChange}
+                                            className="w-full p-3 bg-[#0A1E2E] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors text-white"
+                                            placeholder="Enter exposed URL here"
+                                            required
+                                        />
+                                        {selectedScreenshotForRemoval && (
+                                            <p className="text-cyan-400 text-xs mt-1">
+                                                ✓ Auto-filled from selected item
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Proof of Exposure */}
+                                    <div>
+                                        <label className="block text-white text-sm font-medium mb-2">
+                                            Proof of your data exposure *
+                                            {selectedScreenshotForRemoval && selectedScreenshotForRemoval.image && (
+                                                <span className="text-cyan-400 text-xs ml-2">
+                                                    (Auto-download attempted from screenshot)
+                                                </span>
+                                            )}
+                                        </label>
+                                        <div
+                                            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
+                                    ${isDragOver ? 'border-cyan-400 bg-cyan-400/20' : 'border-cyan-400/30 hover:border-cyan-400/50'}
+                                    ${proofFile ? 'border-green-400 bg-green-400/10' : ''}
+                                    min-h-[200px] flex items-center justify-center
+                                `}
+                                            onDragOver={(e) => {
+                                                e.preventDefault();
+                                                setIsDragOver(true);
+                                            }}
+                                            onDragLeave={(e) => {
+                                                e.preventDefault();
+                                                setIsDragOver(false);
+                                            }}
+                                            onDrop={handleDrop}
+                                            onClick={() => document.getElementById('proof-file')?.click()}
+                                        >
+                                            <input
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp"
+                                                onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                                                className="hidden"
+                                                id="proof-file"
+                                            />
+                                            <div className="flex flex-col items-center gap-3">
+                                                {proofFile ? (
+                                                    <>
+                                                        <div className="relative w-20 h-20">
+                                                            <Image
+                                                                src={URL.createObjectURL(proofFile)}
+                                                                alt="Preview"
+                                                                fill
+                                                                className="object-cover rounded-lg border border-cyan-400/30"
+                                                                sizes="80px"
+                                                            />
+                                                            <div className="absolute inset-0 bg-green-400/20 rounded-lg flex items-center justify-center">
+                                                                <div className="w-10 h-10 bg-green-400 rounded-full flex items-center justify-center">
+                                                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <span className="text-green-400 font-medium block">Proof image ready!</span>
+                                                            <span className="text-gray-400 text-sm block">{proofFile.name}</span>
+                                                            <span className="text-cyan-400 text-xs block mt-1">
+                                                                {proofFile.size > 0 ? `${(proofFile.size / 1024).toFixed(1)} KB` : 'Size not available'}
+                                                            </span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setProofFile(null);
+                                                            }}
+                                                            className="text-red-400 text-sm hover:text-red-300 transition-colors px-3 py-1 border border-red-400/30 rounded"
+                                                        >
+                                                            Remove Image
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FileText size={48} className="text-cyan-400 mb-2" />
+                                                        <div className="text-center">
+                                                            <span className="text-cyan-400 font-medium block">
+                                                                {selectedScreenshotForRemoval ? 'Upload or auto-add proof' : 'Upload proof image'}
+                                                            </span>
+                                                            <span className="text-gray-400 text-sm block mt-1">
+                                                                Drag & drop or click to select
+                                                            </span>
+                                                            {selectedScreenshotForRemoval && (
+                                                                <div className="mt-3 p-3 bg-cyan-400/10 rounded border border-cyan-400/20">
+                                                                    <p className="text-cyan-400 text-xs font-medium">Auto-Add Feature:</p>
+                                                                    <p className="text-gray-400 text-xs text-left mt-1">
+                                                                        Click any item on the left to auto-download its screenshot as proof.
+                                                                        If auto-download fails, you can upload manually here.
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {isDragOver && (
+                                                            <span className="text-cyan-400 text-sm animate-pulse mt-2">Drop local image file here...</span>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Other form fields remain the same... */}
+                                    {/* Search Engine URL */}
+                                    <div>
+                                        <label className="block text-white text-sm font-medium mb-2 flex items-center gap-2">
+                                            <Search size={16} />
+                                            Search engine results page URL (optional)
+                                        </label>
+                                        <input
+                                            type="url"
+                                            name="search_engine_url"
+                                            value={removalFormData.search_engine_url}
+                                            onChange={handleRemovalInputChange}
+                                            className="w-full p-3 bg-[#0A1E2E] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors text-white"
+                                            placeholder="Enter URL of the search engine"
+                                        />
+                                    </div>
+
+                                    {/* Search Keywords */}
+                                    <div>
+                                        <label className="block text-white text-sm font-medium mb-2">
+                                            Search keyword(s) used to locate profile (optional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="search_keywords"
+                                            value={removalFormData.search_keywords}
+                                            onChange={handleRemovalInputChange}
+                                            className="w-full p-3 bg-[#0A1E2E] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors text-white"
+                                            placeholder="Add keywords from your search"
+                                        />
+                                    </div>
+
+                                    {/* Additional Information */}
+                                    <div>
+                                        <label className="block text-white text-sm font-medium mb-2">
+                                            Additional information (optional)
+                                        </label>
+                                        <textarea
+                                            name="additional_information"
+                                            value={removalFormData.additional_information}
+                                            onChange={handleRemovalInputChange}
+                                            rows={3}
+                                            className="w-full p-3 bg-[#0A1E2E] border border-cyan-400/40 rounded-lg focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors text-white resize-none"
+                                            placeholder="Add any additional information about this data broker exposure"
+                                        />
+                                        {selectedScreenshotForRemoval && (
+                                            <p className="text-cyan-400 text-xs mt-1">
+                                                ✓ Auto-generated description added
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Submit Button */}
+                                    <button
+                                        type="submit"
+                                        disabled={submittingRemoval || !removalFormData.exposed_url || !proofFile}
+                                        className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 transform ${submittingRemoval || !removalFormData.exposed_url || !proofFile
+                                            ? "bg-gray-600 cursor-not-allowed"
+                                            : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 hover:scale-[1.02]"
+                                            } text-white`}
+                                    >
+                                        {submittingRemoval ? (
+                                            <span className="flex items-center justify-center">
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                Submitting...
+                                            </span>
+                                        ) : (
+                                            "Submit Removal Request"
+                                        )}
+                                    </button>
+
+                                    {(!removalFormData.exposed_url || !proofFile) && (
+                                        <p className="text-red-400 text-sm text-center">
+                                            Please provide both exposed URL and proof image to submit
+                                        </p>
+                                    )}
+                                </form>
                             </div>
                         </div>
                     </div>
